@@ -280,9 +280,9 @@ if __name__ == '__main__':
                 else:
                     omegas_local_k, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
                         sumstats_pop2_c,ldscore1_ck[:,[0,i+1]],ldscore2_ck[:,[0,i+1]],ldscorete_ck[:,[0,i+1]],Sigma_LD)
-                omegas_local[i+1] = make_positive_definite(omegas_local_k.sum(axis=0))
+                omegas_local[i+1] = omegas_local_k.sum(axis=0)
                 omegas_local_baseLD[i] = omegas_local_k[0]
-            omegas_local_baseLD_mean = make_positive_definite(omegas_local_baseLD.mean(axis=0))
+            omegas_local_baseLD_mean = omegas_local_baseLD.mean(axis=0)
             omegas_local[0] = 2*omegas_local_baseLD_mean
             omegas_local -= omegas_local_baseLD_mean
             logger.info("Local regions regression coefficients (LD):\n%s \n...", omegas_local[:2])
