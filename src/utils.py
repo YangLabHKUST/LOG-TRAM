@@ -369,7 +369,7 @@ def get_enrichment(coef, annot_mat):
     tot_nsnp = np.float64(annot_nsnp[0])
     annot_en = annot_est*tot_nsnp / (annot_est[0] * annot_nsnp)
 
-    return annot_en
+    return annot_en[1:]
 
 
 ##
