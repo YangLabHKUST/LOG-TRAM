@@ -111,7 +111,7 @@ if __name__ == '__main__':
     for ssfile in args.sumstats_popu1:
         sumstats_pop1_names.append(ssfile.split(',')[1])
         sumstats_pop1[ssfile.split(',')[1]] = pd.read_csv(ssfile.split(',')[0],
-            sep='\t',compression='infer',dtype={'CHR':str}).drop_duplicates('SNP').dropna()
+            sep='\t',compression='infer',dtype={'CHR':int}).drop_duplicates('SNP').dropna()
         logger.info("Sumstats {} shape: {}x{}".format(ssfile.split(',')[1],
             sumstats_pop1[ssfile.split(',')[1]].shape[0],sumstats_pop1[ssfile.split(',')[1]].shape[1])) 
     sumstats_pop2 = {}
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     for ssfile in args.sumstats_popu2:
         sumstats_pop2_names.append(ssfile.split(',')[1])
         sumstats_pop2[ssfile.split(',')[1]] = pd.read_csv(ssfile.split(',')[0],
-            sep='\t',compression='infer',dtype={'CHR':str}).drop_duplicates('SNP').dropna()
+            sep='\t',compression='infer',dtype={'CHR':int}).drop_duplicates('SNP').dropna()
         logger.info("Sumstats {} shape: {}x{}".format(ssfile.split(',')[1],
             sumstats_pop2[ssfile.split(',')[1]].shape[0],sumstats_pop2[ssfile.split(',')[1]].shape[1]))
     P1n, P2n = len(sumstats_pop1_names), len(sumstats_pop2_names)
@@ -139,9 +139,9 @@ if __name__ == '__main__':
     df_ldsc_pop2 = df_ldsc_pop2.loc[df_ldsc_pop2['SNP'].isin(snps_common)].reset_index(drop=True)
     df_ldsc_te = df_ldsc_te.loc[df_ldsc_te['SNP'].isin(snps_common)].reset_index(drop=True)
     for k,v in sumstats_pop1.items():
-        sumstats_pop1[k] = v.loc[v['SNP'].isin(snps_common)].reset_index(drop=True)
+        sumstats_pop1[k] = v.loc[v['SNP'].isin(snps_common)].sort_values(['CHR','BP']).reset_index(drop=True)
     for k,v in sumstats_pop2.items():
-        sumstats_pop2[k] = v.loc[v['SNP'].isin(snps_common)].reset_index(drop=True)
+        sumstats_pop2[k] = v.loc[v['SNP'].isin(snps_common)].sort_values(['CHR','BP']).reset_index(drop=True)
 
     # Removing ambiguous SNPs
     logger.info('Removing ambiguous SNPs...')
@@ -172,7 +172,7 @@ if __name__ == '__main__':
         sumstats_pop2[k] = v.loc[~snps_rm_idx,:].reset_index(drop=True)
 
     logger.info('Aligning the minor allele according to a designated reference summary statistics DataFrame: {}'.format(sumstats_pop1_names[0]))
-    allele_ref = sumstats_pop1[sumstats_pop1_names[0]][['SNP','A1','A2']]
+    allele_ref = sumstats_pop1[sumstats_pop1_names[0]][['SNP','A1','A2']].copy()
     allele_ref.columns = ['SNP','A1_ref','A2_ref']
     for k,v in sumstats_pop1.items():
         v = v.merge(allele_ref,left_on='SNP',right_on='SNP',how='inner')
@@ -180,6 +180,7 @@ if __name__ == '__main__':
         logger.info('{} SNPs need to be flipped for sumstats: {}'.format(index_flip.sum(),k))
         v.loc[index_flip,'BETA'] = -v.loc[index_flip,'BETA']
         v.loc[index_flip,'Z'] = -v.loc[index_flip,'Z']
+        v['CHR'] = v['CHR'].astype(str)
         sumstats_pop1[k] = v
         if args.out_harmonized:
             v = v[['CHR','BP','SNP','A1_ref','A2_ref','FRQ','BETA','SE','Z','P','N']]
@@ -191,6 +192,7 @@ if __name__ == '__main__':
         logger.info('{} SNPs need to be flipped for sumstats: {}'.format(index_flip.sum(),k))
         v.loc[index_flip,'BETA'] = -v.loc[index_flip,'BETA']
         v.loc[index_flip,'Z'] = -v.loc[index_flip,'Z']
+        v['CHR'] = v['CHR'].astype(str)
         sumstats_pop2[k] = v
         if args.out_harmonized:
             v = v[['CHR','BP','SNP','A1_ref','A2_ref','FRQ','BETA','SE','Z','P','N']]
