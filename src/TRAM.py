@@ -25,8 +25,8 @@ HEADER = """
         --sumstats-popu1 ss_file1,ss_name1 \n
         --sumstats-popu2 ss_file2,ss_name2 \n
         --ldscores ldsc_annot_1mb_TGP_hm3_chr@_std \n
+        --annot annot_chr@.gz \
         --out-harmonized \n
-        --out-reg-coef \n
         
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>       
 """ % (__version__, SOFTWARE_CORRESPONDENCE_EMAIL1, SOFTWARE_CORRESPONDENCE_EMAIL2)
@@ -45,15 +45,15 @@ if __name__ == '__main__':
             popu2 <corresponding to population of --sumstats-popu2>, trans-ethnic), \
             If the filename prefix contains the symbol @, TRAM will replace the @ symbol \
             with chromosome number, then add the suffix _pop1.gz/_pop2.gz/_te.gz',required=True)
-    #parser.add_argument('--annot', type=str,
-    #    help='specifies the annotation files used in S-LDXR, \
-    #    If the filename prefix contains the symbol @, TRAM will replace the @ symbol \
-    #         with chromosome number',required=True)
+    parser.add_argument('--annot', type=str,
+       help='specifies the annotation files used in S-LDXR, \
+       If the filename prefix contains the symbol @, TRAM will replace the @ symbol \
+            with chromosome number',required=True)
     parser.add_argument('--use_snps', type=str, 
         help='SNPs list file (one rsID per line), If specified, this list will be used to restrict the final list of SNPs reported')
     parser.add_argument('--out-harmonized', action="store_true", 
         help='If specified, TRAM will output harmonized summary statistics to disk')
-    parser.add_argument('--out-reg-coef', action="store_true", 
+    parser.add_argument('--out-reg-coef', type=str, default='yes', choices=['yes','no'],
         help='If specified, TRAM will output LD score regression coeficients to disk')
     # Regression option
     parser.add_argument("--local-anno", type=str, default='yes', choices=['yes','no'],
@@ -268,10 +268,15 @@ if __name__ == '__main__':
         if args.local_anno == 'yes':
             logger.info("find {} local regions in chromosome {}".format(len(name_windows),c))
             omegas_local = np.zeros((1+len(name_windows),P1n+P2n,P1n+P2n))
+            omegas_local_baseLD = np.zeros((len(name_windows),P1n+P2n,P1n+P2n))
             for i,name_window in enumerate(name_windows):
                 omegas_local_k, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
                     sumstats_pop2_c,ldscore1_ck[:,[0,i+1]],ldscore2_ck[:,[0,i+1]],ldscorete_ck[:,[0,i+1]],Sigma_LD)
                 omegas_local[i+1] = make_positive_definite(omegas_local_k.sum(axis=0))
+                omegas_local_baseLD[i] = omegas_local_k[0]
+            omegas_local_baseLD_mean = make_positive_definite(omegas_local_baseLD.mean(axis=0))
+            omegas_local[0] = 2*omegas_local_baseLD_mean
+            omegas_local -= omegas_local_baseLD_mean
         else:
             # 1+K x P x P
             logger.info("find {} functional annotations in chromosome {}".format(len(name_windows),c))
@@ -279,6 +284,7 @@ if __name__ == '__main__':
                 sumstats_pop2_c,ldscore1_ck,ldscore2_ck,ldscorete_ck,Sigma_LD)
         logger.info("Local regions/functional annotation regression coefficients (LD):\n%s \n...", omegas_local[:2])
         res_omegas_local[c] = omegas_local
+
         logger.info("Creating omega and sigma matrices for each SNP.")
         omega_ldscore_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
         sigma_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
@@ -314,7 +320,7 @@ if __name__ == '__main__':
         tram_res_beta_se[chr_snp_idx] = new_beta_ses
         tram_res_Neff[chr_snp_idx] = new_Neff
 
-    if args.out_reg_coef:
+    if args.out_reg_coef == 'yes':
         logger.info("Saving local regions/functional annotation regression coefficients to file %s",args.out+'_TRAM_reg_coefs.npy')
         np.save(args.out+'_TRAM_reg_coefs.npy',res_omegas_local)
 

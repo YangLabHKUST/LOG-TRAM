@@ -250,8 +250,7 @@ def ldscore_regression_h2(df_eas,ldscore,intercept=None):
         fit_step2 = estimate_h2(df_eas,ldscore,
                 reg_w1 = 1/ldscore[:,0],constrain_intercept=True,int1=intercept)
     fit_step2[0] = fit_step2[0] if fit_step2[0]>0 else 1e-12 
-    #for i in range(1,len(fit_step2)-1):
-    #    fit_step2[i] = fit_step2[i] if fit_step2[i]+fit_step2[0] > 1e-12 else -fit_step2[0]*0.9
+
     return fit_step2
 
 
@@ -352,33 +351,24 @@ def make_positive_definite(A):
     return A
 
 
-def get_sum(annot_mat, coef):
+def get_enrichment(coef, annot_mat):
+    
     """
-    Estimate the heritability / genetic covariance in each functional
-    annotation
+    Estimate enrichment of local regions/functional annotation
     """
-
-    # get per snp variance / covariance estimate
-    nannot = annot_mat.shape[1]
-   
+       
     # exclude coef for the intercept 
-    annot_cov = np.dot(annot_mat.T, annot_mat)    
+    annot_cov = np.dot(annot_mat.T, annot_mat)  
     annot_est = np.dot(annot_cov, coef)
 
     annot_cov = annot_cov.astype(np.float64)
     annot_est = annot_est.astype(np.float64)
-    return annot_est.astype(np.float64)
-
-def get_enrichment(est):
-    """
-    Estimate enrichment of annotation
-    """
-
-    # get dimension
-    nannot = annot_nsnp.shape[0]
-    tot_nsnp = np.float64(annot_nsnp[0])
-    annot_en = est*tot_nsnp / (est[0] * annot_nsnp)
     
+    annot_nsnp = np.sum(annot_mat, axis=0)
+    # get dimension
+    tot_nsnp = np.float64(annot_nsnp[0])
+    annot_en = annot_est*tot_nsnp / (annot_est[0] * annot_nsnp)
+
     return annot_en
 
 
@@ -398,14 +388,14 @@ def calculate_n_eff(pop: int, n_orig: np.ndarray, sigma: np.ndarray, ses: np.nda
 
 
 def calculate_p(z_scores: np.array) -> np.array:
-    # Calculate constants used in determination of P values for MAMA
+    # Calculate constants used in determination of P values
     ln = np.log  # pylint: disable=invalid-name
     LN_2 = ln(2.0)
     RECIP_LN_10 = np.reciprocal(ln(10.0))
     """
     Function that calculates P for the TRAM results
     :param z_scores: Z scores
-    :return: P values for MAMA
+    :return: P values 
              (as strings, to allow for very large negative exponents)
     """
     # Since P = 2 * normal_cdf(-|Z|), P = e ^ (log_normal_cdf(-|Z|) + ln 2)
