@@ -8,6 +8,7 @@ bin-release/
 .settings/
 .vscode
 .DS_Store
+tram.code-workspace
 
 # Executables
 *.swf

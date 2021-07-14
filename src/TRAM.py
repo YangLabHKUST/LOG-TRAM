@@ -7,11 +7,11 @@ from utils import *
 
 __version__ = '1.0.1'
 SOFTWARE_CORRESPONDENCE_EMAIL1 = 'jxiaoae@connect.ust.hk'
-SOFTWARE_CORRESPONDENCE_EMAIL2 = 'mcaiad@connect.ust.hk'
+SOFTWARE_CORRESPONDENCE_EMAIL2 = 'mcaiad@connect.ust.hk' 
 
 HEADER = """
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-<>
+<> 
 <> TRAM: Leverage local genetic architecture and functional annotation for trans-ancestry association mapping
 <> Version: %s
 <> MIT License
@@ -20,16 +20,16 @@ HEADER = """
 <> Software-related correspondence: %s or %s
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 <> example:
-    python <install path>/src/TRAM.py \n
-        --out test \n
-        --sumstats-popu1 ss_file1,ss_name1 \n
-        --sumstats-popu2 ss_file2,ss_name2 \n
-        --ldscores ldsc_annot_1mb_TGP_hm3_chr@_std \n
-        --annot annot_chr@.gz \
-        --out-harmonized \n
+    python <install path>/src/TRAM.py \\
+        --out test \\
+        --sumstats-popu1 ss_file1,ss_name1 \\
+        --sumstats-popu2 ss_file2,ss_name2 \\
+        --ldscores ldsc_annot_1mb_TGP_hm3_chr@_std \\
+        --out-harmonized 
         
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>       
 """ % (__version__, SOFTWARE_CORRESPONDENCE_EMAIL1, SOFTWARE_CORRESPONDENCE_EMAIL2)
+
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser(description='Leverage local genetic architecture for trans-ancestry association mapping')
@@ -236,7 +236,7 @@ if __name__ == '__main__':
         res_omegas_local = {}
 
         # Run LD score regressions for annotation
-        logger.info("Running LD Score regression for local regions chromosome by chromosome.")
+        logger.info("\nRunning LD Score regression and TRAM for local regions chromosome by chromosome.\n")
 
         for c in chrs:
             ldscore1_c = pd.read_csv(args.ldscores.replace('@',c)+'_pop1.gz',compression='infer',sep='\t')
@@ -274,8 +274,12 @@ if __name__ == '__main__':
             omegas_local = np.zeros((1+len(name_windows),P1n+P2n,P1n+P2n))
             omegas_local_baseLD = np.zeros((len(name_windows),P1n+P2n,P1n+P2n))
             for i,name_window in enumerate(name_windows):
-                omegas_local_k, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
-                    sumstats_pop2_c,ldscore1_ck[:,[0,i+1]],ldscore2_ck[:,[0,i+1]],ldscorete_ck[:,[0,i+1]],Sigma_LD)
+                if ldscore1_ck[:,i+1].max()<1 or ldscore2_ck[:,i+1].max()<1: # in case of emmpty window
+                    omegas_local_k = np.zeros((2,P1n+P2n,P1n+P2n))
+                    omegas_local_k[0] = Omega_global
+                else:
+                    omegas_local_k, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
+                        sumstats_pop2_c,ldscore1_ck[:,[0,i+1]],ldscore2_ck[:,[0,i+1]],ldscorete_ck[:,[0,i+1]],Sigma_LD)
                 omegas_local[i+1] = make_positive_definite(omegas_local_k.sum(axis=0))
                 omegas_local_baseLD[i] = omegas_local_k[0]
             omegas_local_baseLD_mean = make_positive_definite(omegas_local_baseLD.mean(axis=0))
@@ -309,7 +313,7 @@ if __name__ == '__main__':
             logger.info("Adjusted %s SNPs to make sigma positive definite.",len(fails_snps_sigma))
 
             # Run the TRAM method
-            logger.info("Run the TRAM method\n")
+            logger.info("Run the core TRAM method\n")
             new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
             new_Neff = np.zeros((snp_num_c,P1n+P2n))
             for i,ss_name in enumerate(sumstats_pop1_names):
@@ -328,7 +332,7 @@ if __name__ == '__main__':
         logger.info("Running LD Score regression for functional annotations.")
 
         if args.annot_names is None:
-            annot_names = pd.read_csv(args.ldscores.replace('@',str(c))+'_pop1.gz',
+            annot_names = pd.read_csv(args.ldscores.replace('@',str(22))+'_pop1.gz',
             compression='infer',sep='\t').columns.values[4:].tolist()
         else:
             annot_names = np.loadtxt(args.annot_names,dtype=str).tolist()
@@ -367,7 +371,7 @@ if __name__ == '__main__':
             logger.info("Saving functional annotations regression coefficients to file %s",args.out+'_TRAM_reg_coefs.npy')
             np.save(args.out+'_TRAM_reg_coefs.npy',omegas_local)
 
-        logger.info("Run the TRAM method chromosome by chromosome.")
+        logger.info("\nRun the TRAM method chromosome by chromosome.\n")
         for c in chrs:
             chr_snp_idx = df_ldsc_pop1.loc[df_ldsc_pop1['CHR']==c].index.values
             snp_num_c = chr_snp_idx.shape[0]
