@@ -227,7 +227,7 @@ if __name__ == '__main__':
     # beta, se, N_eff
     tram_res_beta = np.zeros((df_ldsc_pop1.shape[0],P1n+P2n))
     tram_res_beta_se = np.zeros((df_ldsc_pop1.shape[0],P1n+P2n))
-    tram_res_Neff = np.zeros((df_ldsc_pop1.shape[0],P1n+P2n))
+    #tram_res_Neff = np.zeros((df_ldsc_pop1.shape[0],P1n+P2n))
 
     if args.allowed_chr_values is None:
         chrs = [str(_) for _ in range(1,23)]
@@ -282,6 +282,8 @@ if __name__ == '__main__':
                 else:
                     omegas_local_k, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
                         sumstats_pop2_c,ldscore1_ck[:,[0,i+1]],ldscore2_ck[:,[0,i+1]],ldscorete_ck[:,[0,i+1]],Sigma_LD)
+                    if np.all(np.diag(omegas_local_k[1]) > 1e-10):
+                        omegas_local_k[1] = make_positive_definite(omegas_local_k[1])
                 omegas_local[i+1] = omegas_local_k.sum(axis=0)
                 omegas_local_baseLD[i] = omegas_local_k[0]
             omegas_local_baseLD_mean = omegas_local_baseLD.mean(axis=0)
@@ -317,17 +319,17 @@ if __name__ == '__main__':
             # Run the TRAM method
             logger.info("Run the core TRAM method\n")
             new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
-            new_Neff = np.zeros((snp_num_c,P1n+P2n))
-            for i,ss_name in enumerate(sumstats_pop1_names):
-                new_Neff[:,i] = calculate_n_eff(i,sumstats_pop1_c[ss_name]['N'].values,sigma_snps,new_beta_ses[:,i])
-            for i,ss_name in enumerate(sumstats_pop2_names):
-                new_Neff[:,P1n+i] = calculate_n_eff(P1n+i,sumstats_pop2_c[ss_name]['N'].values,sigma_snps,new_beta_ses[:,P1n+i])
+            #new_Neff = np.zeros((snp_num_c,P1n+P2n))
+            #for i,ss_name in enumerate(sumstats_pop1_names):
+            #    new_Neff[:,i] = calculate_n_eff(i,sumstats_pop1_c[ss_name]['N'].values,sigma_snps,new_beta_ses[:,i])
+            #for i,ss_name in enumerate(sumstats_pop2_names):
+            #    new_Neff[:,P1n+i] = calculate_n_eff(P1n+i,sumstats_pop2_c[ss_name]['N'].values,sigma_snps,new_beta_ses[:,P1n+i])
             tram_res_beta[chr_snp_idx] = new_betas
             tram_res_beta_se[chr_snp_idx] = new_beta_ses
-            tram_res_Neff[chr_snp_idx] = new_Neff
+            #tram_res_Neff[chr_snp_idx] = new_Neff
 
         if args.out_reg_coef == 'yes':
-            logger.info("Saving local regions regression coefficients to file %s",args.out+'_TRAM_reg_coefs.npy')
+            logger.info("Saving local regions regression coefficients to file %s \n",args.out+'_TRAM_reg_coefs.npy')
             np.save(args.out+'_TRAM_reg_coefs.npy',res_omegas_local)
     
     else:
@@ -370,7 +372,7 @@ if __name__ == '__main__':
         logger.info("Functional annotations regression coefficients (LD):\n%s \n...", omegas_local[:4])
 
         if args.out_reg_coef == 'yes':
-            logger.info("Saving functional annotations regression coefficients to file %s",args.out+'_TRAM_reg_coefs.npy')
+            logger.info("Saving functional annotations regression coefficients to file %s \n",args.out+'_TRAM_reg_coefs.npy')
             np.save(args.out+'_TRAM_reg_coefs.npy',omegas_local)
 
         logger.info("\nRun the TRAM method chromosome by chromosome.\n")
@@ -422,43 +424,76 @@ if __name__ == '__main__':
             # Run the TRAM method
             logger.info("Run the core TRAM method\n")
             new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
-            new_Neff = np.zeros((snp_num_c,P1n+P2n))
-            for i,ss_name in enumerate(sumstats_pop1_names):
-                new_Neff[:,i] = calculate_n_eff(i,N_array[:,i],sigma_snps,new_beta_ses[:,i])
-            for i,ss_name in enumerate(sumstats_pop2_names):
-                new_Neff[:,P1n+i] = calculate_n_eff(P1n+i,N_array[:,P1n+i],sigma_snps,new_beta_ses[:,P1n+i])
+            #new_Neff = np.zeros((snp_num_c,P1n+P2n))
+            #for i,ss_name in enumerate(sumstats_pop1_names):
+            #    new_Neff[:,i] = calculate_n_eff(i,N_array[:,i],sigma_snps,new_beta_ses[:,i])
+            #for i,ss_name in enumerate(sumstats_pop2_names):
+            #    new_Neff[:,P1n+i] = calculate_n_eff(P1n+i,N_array[:,P1n+i],sigma_snps,new_beta_ses[:,P1n+i])
             tram_res_beta[chr_snp_idx] = new_betas
             tram_res_beta_se[chr_snp_idx] = new_beta_ses
-            tram_res_Neff[chr_snp_idx] = new_Neff
+            #tram_res_Neff[chr_snp_idx] = new_Neff
 
 
-    logger.info("Preparing results for output")
+    #logger.info("Preparing results for output")
+    sumstats_pop1_new = {}
     for i,ss_name in enumerate(sumstats_pop1_names):
-        logger.info("Writing %s (Population 1) to disk", ss_name)
+        #logger.info("Writing %s (Population 1) to disk", ss_name)
         ss_df = sumstats_pop1[ss_name]
         ss_df['BETA_tram'] = tram_res_beta[:,i]
         ss_df['SE_tram'] = tram_res_beta_se[:,i]
         ss_df['Z_tram'] = tram_res_beta[:,i]/tram_res_beta_se[:,i]
+        ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]
         ss_df['P_tram'] = calculate_p(ss_df['Z_tram'].values)
-        ss_df['N_eff'] = tram_res_Neff[:,i]
+        #ss_df['N_eff'] = tram_res_Neff[:,i]
         conversion_factor_col = np.reciprocal(np.sqrt(2.0 * ss_df['FRQ'] * (1.0 - ss_df['FRQ'])))
         ss_df['BETA_tram'] = ss_df['BETA_tram']*conversion_factor_col
         ss_df['SE_tram'] = ss_df['SE_tram']*conversion_factor_col
-        ss_df = ss_df[['CHR','BP','SNP','A1_ref','A2_ref','FRQ','BETA_tram','SE_tram','Z_tram','P_tram','N_eff','N']]
-        ss_df.columns = ['CHR','BP','SNP','A1','A2','FRQ','BETA','SE','Z','P','N_eff','N_origin']
-        ss_df.to_csv(args.out+'_TRAM_pop1_'+ss_name+'.txt',sep='\t',index=None)
+        ss_df = ss_df[['CHR','BP','SNP','A1_ref','A2_ref','FRQ','BETA_tram','SE_tram','Z_tram','P_tram','N']]
+        ss_df.columns = ['CHR','BP','SNP','A1','A2','FRQ','BETA','SE','Z','P','N']
+        ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]
+        sumstats_pop1_new[ss_name] = ss_df
+        #ss_df.to_csv(args.out+'_TRAM_pop1_'+ss_name+'.txt',sep='\t',index=None)
+    sumstats_pop2_new = {}
     for i,ss_name in enumerate(sumstats_pop2_names):
-        logger.info("Writing %s (Population 2) to disk", ss_name)
+        #logger.info("Writing %s (Population 2) to disk", ss_name)
         ss_df = sumstats_pop2[ss_name]
         ss_df['BETA_tram'] = tram_res_beta[:,i+P1n]
         ss_df['SE_tram'] = tram_res_beta_se[:,i+P1n]
         ss_df['Z_tram'] = tram_res_beta[:,i+P1n]/tram_res_beta_se[:,i+P1n]
+        ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]
         ss_df['P_tram'] = calculate_p(ss_df['Z_tram'].values)
-        ss_df['N_eff'] = tram_res_Neff[:,i+P1n]
+        #ss_df['N_eff'] = tram_res_Neff[:,i+P1n]
         conversion_factor_col = np.reciprocal(np.sqrt(2.0 * ss_df['FRQ'] * (1.0 - ss_df['FRQ'])))
         ss_df['BETA_tram'] = ss_df['BETA_tram']*conversion_factor_col
         ss_df['SE_tram'] = ss_df['SE_tram']*conversion_factor_col
-        ss_df = ss_df[['CHR','BP','SNP','A1_ref','A2_ref','FRQ','BETA_tram','SE_tram','Z_tram','P_tram','N_eff','N']]
-        ss_df.columns = ['CHR','BP','SNP','A1','A2','FRQ','BETA','SE','Z','P','N_eff','N_origin']
-        ss_df.to_csv(args.out+'_TRAM_pop2_'+ss_name+'.txt',sep='\t',index=None)
-    logging.info("\nExecution complete")
+        ss_df = ss_df[['CHR','BP','SNP','A1_ref','A2_ref','FRQ','BETA_tram','SE_tram','Z_tram','P_tram','N']]
+        ss_df.columns = ['CHR','BP','SNP','A1','A2','FRQ','BETA','SE','Z','P','N']
+        sumstats_pop2_new[ss_name] = ss_df
+        #ss_df.to_csv(args.out+'_TRAM_pop2_'+ss_name+'.txt',sep='\t',index=None)
+    #logging.info("\nExecution complete")
+
+    # Run LD score regressions
+    logger.info("Running LD Score regression for the whole genome after Meta-GWAS.")
+    Omega_global_new, Sigma_LD_new = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_new,sumstats_pop2_names,\
+        sumstats_pop2_new,df_ldsc_pop1.loc[df_ldsc_pop1['CHR'].isin(chrs),['base']].values,\
+            df_ldsc_pop2.loc[df_ldsc_pop2['CHR'].isin(chrs),['base']].values,\
+                df_ldsc_te.loc[df_ldsc_te['CHR'].isin(chrs),['base']].values)
+    Omega_global_new = Omega_global_new.squeeze()
+    logger.info("Regression coefficients (LD):\n%s", Omega_global_new)
+    logger.info("Regression coefficients (Intercept):\n%s", Sigma_LD_new)
+
+    for i,ss_name in enumerate(sumstats_pop1_names):
+        logger.info("Writing %s (Population 1) to disk", ss_name)
+        ss_df_new = sumstats_pop1_new[ss_name]
+        ss_df = sumstats_pop1[ss_name]
+        Neff_f = ((ss_df_new['Z'].values**2).mean() - Omega_global_new[i,i])/((ss_df['Z'].values**2).mean() - Omega_global[i,i])
+        ss_df_new['N_eff'] = Neff_f*ss_df_new['N'].values
+        ss_df_new.to_csv(args.out+'_TRAM_pop1_'+ss_name+'.txt',sep='\t',index=None)
+
+    for i,ss_name in enumerate(sumstats_pop2_names):
+        logger.info("Writing %s (Population 2) to disk", ss_name)
+        ss_df_new = sumstats_pop2_new[ss_name]
+        ss_df = sumstats_pop2[ss_name]
+        Neff_f = ((ss_df_new['Z'].values**2).mean() - Omega_global_new[i+P1n,i+P1n])/((ss_df['Z'].values**2).mean() - Omega_global[i+P1n,i+P1n])
+        ss_df_new['N_eff'] = Neff_f*ss_df_new['N'].values
+        ss_df_new.to_csv(args.out+'_TRAM_pop2_'+ss_name+'.txt',sep='\t',index=None)
