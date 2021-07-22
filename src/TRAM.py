@@ -469,6 +469,8 @@ if __name__ == '__main__':
         ss_df_new = sumstats_pop1_new[ss_name]
         ss_df = sumstats_pop1[ss_name]
         Neff_f = ((ss_df_new['Z'].values**2).mean() - Sigma_LD_new[i,i])/((ss_df['Z'].values**2).mean() - Sigma_LD[i,i])
+        if Neff_f<1:
+            Neff_f = ((ss_df_new['Z'].values**2).mean() - 1)/((ss_df['Z'].values**2).mean() - Sigma_LD[i,i])
         ss_df_new['N_eff'] = Neff_f*ss_df_new['N'].values
         ss_df_new.to_csv(args.out+'_TRAM_pop1_'+ss_name+'.txt',sep='\t',index=None)
 
@@ -477,6 +479,8 @@ if __name__ == '__main__':
         ss_df_new = sumstats_pop2_new[ss_name]
         ss_df = sumstats_pop2[ss_name]
         Neff_f = ((ss_df_new['Z'].values**2).mean() - Sigma_LD_new[i+P1n,i+P1n])/((ss_df['Z'].values**2).mean() - Sigma_LD[i+P1n,i+P1n])
+        if Neff_f<1:
+            Neff_f = ((ss_df_new['Z'].values**2).mean() - 1)/((ss_df['Z'].values**2).mean() - Sigma_LD[i+P1n,i+P1n])
         ss_df_new['N_eff'] = Neff_f*ss_df_new['N'].values
         ss_df_new.to_csv(args.out+'_TRAM_pop2_'+ss_name+'.txt',sep='\t',index=None)
     logging.info("\nExecution complete")
