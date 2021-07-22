@@ -360,6 +360,10 @@ if __name__ == '__main__':
         omegas_local, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1,sumstats_pop2_names,\
             sumstats_pop2,ldscore1_all,ldscore2_all,ldscorete_all,Sigma_LD)
 
+        for i,_ in enumerate(['base']+annot_names):
+            if np.all(np.diag(omegas_local[i]) > 1e-10):
+                omegas_local[i] = make_positive_definite(omegas_local[i])
+
         logger.info("Functional annotations regression coefficients (LD):\n%s \n...", omegas_local[:4])
 
         if args.out_reg_coef == 'yes':
