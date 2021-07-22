@@ -375,18 +375,6 @@ def get_enrichment(coef, annot_mat):
 ##
 # Association mapping
 ##
-def calculate_n_eff(pop: int, n_orig: np.ndarray, sigma: np.ndarray, ses: np.ndarray) -> np.ndarray:
-    """
-    Function that calculates effective N
-    :param pop: Number of the population (used to index into sigma)
-    :param n_orig: Array of original per-SNP N values for this population
-    :param sigma: MxPxP matrix of Sigma values
-    :param ses: Array of length M of standard errors
-    :return: The array of per-SNP effective N's
-    """
-    return n_orig * sigma[:, pop, pop] * np.reciprocal(np.square(ses))
-
-
 def calculate_p(z_scores: np.array) -> np.array:
     # Calculate constants used in determination of P values
     ln = np.log  # pylint: disable=invalid-name
