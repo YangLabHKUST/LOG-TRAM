@@ -45,10 +45,6 @@ if __name__ == '__main__':
             popu2 <corresponding to population of --sumstats-popu2>, trans-ethnic), \
             If the filename prefix contains the symbol @, TRAM will replace the @ symbol \
             with chromosome number, then add the suffix _pop1.gz/_pop2.gz/_te.gz',required=True)
-    # parser.add_argument('--annot', type=str,
-    #    help='specifies the annotation files used in S-LDXR, \
-    #    If the filename prefix contains the symbol @, TRAM will replace the @ symbol \
-    #         with chromosome number',required=True)
     parser.add_argument('--annot-names', type=str,
        help='Functinoal annotation name list file, one name per line (do not include "base")',required=False)
     parser.add_argument('--use_snps', type=str, 
@@ -66,6 +62,9 @@ if __name__ == '__main__':
         help="Optional argument indicating that the LDscore regression intercept matrix should be set to be the identity matrix.")
     parser.add_argument("--reg-int-diag", action="store_true",
         help="Optional argument indicating that the LDscore regression intercept matrix should have off-diagonal elements set to zero")
+    parser.add_argument('--reg-ld-coef', type=str,
+       help='Optional argument indicating the file (dict data type store in .npy file) containing the regression \
+           coeficient for LDscores of functional annotations')
     # Summary Statistics Filtering Options
     parser.add_argument("--allowed-chr-values", type=str.upper, nargs="+",
         help='specify the allowed values for the chromosome')
@@ -363,6 +362,13 @@ if __name__ == '__main__':
         for i,_ in enumerate(['base']+annot_names):
             if np.all(np.diag(omegas_local[i]) > 1e-10):
                 omegas_local[i] = make_positive_definite(omegas_local[i])
+        
+        if args.reg_ld_coef is not None:
+            inp_omegas = np.load(args.reg_ld_coef,allow_pickle=True).item()
+            logger.info("Loading %s regression coeficent(s) from %s \n", len(inp_omegas.keys()), args.reg_ld_coef)
+            for i,an in enumerate(['base']+annot_names):
+                if an in inp_omegas.keys():
+                    omegas_local[i] = inp_omegas[an]
 
         logger.info("Functional annotations regression coefficients (LD):\n%s \n...", omegas_local[:4])
 
