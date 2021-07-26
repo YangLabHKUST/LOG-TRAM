@@ -294,10 +294,10 @@ if __name__ == '__main__':
             for j in range(snp_num_c):
                 sigma_snps[j] = np.diag(se_array[j])@Sigma_LD@np.diag(se_array[j])
                 ld_matrx_j = np.zeros_like(omegas_local)
-                for k in range(n_window+1):
-                    ld_matrx_j[k][:P1n,:P1n] = ldscore1_ck[j,k]
-                    ld_matrx_j[k][:P1n,P1n:] = ld_matrx_j[k][P1n:,:P1n] = ldscorete_ck[j,k]
-                    ld_matrx_j[k][P1n:,P1n:] = ldscore2_ck[j,k]
+                ld_matrx_j[:,:P1n,:P1n] = np.repeat(ldscore1_ck[j],P1n**2).reshape(ldscore1_ck[j].shape[0],P1n,P1n)
+                ld_matrx_j[:,:P1n,P1n:] = np.repeat(ldscorete_ck[j],P1n*P2n).reshape(ldscorete_ck[j].shape[0],P1n,P2n)
+                ld_matrx_j[:,P1n:,:P1n] = np.repeat(ldscorete_ck[j],P1n*P2n).reshape(ldscorete_ck[j].shape[0],P2n,P1n)
+                ld_matrx_j[:,P1n:,P1n:] = np.repeat(ldscore2_ck[j],P2n**2).reshape(ldscore2_ck[j].shape[0],P2n,P2n)
                 omega_ldscore_snps[j] = (omegas_local*ld_matrx_j).sum(axis=0)
             logger.info("Checking omega and sigma for validity based on positive (semi-)definiteness")
             fails_snps_omega = []
@@ -404,10 +404,10 @@ if __name__ == '__main__':
             for j in range(snp_num_c):
                 sigma_snps[j] = np.diag(se_array[j])@Sigma_LD@np.diag(se_array[j])
                 ld_matrx_j = np.zeros_like(omegas_local)
-                for k in range(n_window+1):
-                    ld_matrx_j[k][:P1n,:P1n] = ldscore1_all[chr_snp_idx[j],k]
-                    ld_matrx_j[k][:P1n,P1n:] = ld_matrx_j[k][P1n:,:P1n] = ldscorete_all[chr_snp_idx[j],k]
-                    ld_matrx_j[k][P1n:,P1n:] = ldscore2_all[chr_snp_idx[j],k]
+                ld_matrx_j[:,:P1n,:P1n] = np.repeat(ldscore1_all[chr_snp_idx[j]],P1n**2).reshape(ldscore1_all[chr_snp_idx[j]].shape[0],P1n,P1n)
+                ld_matrx_j[:,:P1n,P1n:] = np.repeat(ldscorete_all[chr_snp_idx[j]],P1n*P2n).reshape(ldscorete_all[chr_snp_idx[j]].shape[0],P1n,P2n)
+                ld_matrx_j[:,P1n:,:P1n] = np.repeat(ldscorete_all[chr_snp_idx[j]],P1n*P2n).reshape(ldscorete_all[chr_snp_idx[j]].shape[0],P2n,P1n)
+                ld_matrx_j[:,P1n:,P1n:] = np.repeat(ldscore2_all[chr_snp_idx[j]],P2n**2).reshape(ldscore2_all[chr_snp_idx[j]].shape[0],P2n,P2n)
                 omega_ldscore_snps[j] = (omegas_local*ld_matrx_j).sum(axis=0)
             logger.info("Checking omega and sigma for validity based on positive (semi-)definiteness")
             fails_snps_omega = []
