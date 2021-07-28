@@ -344,7 +344,7 @@ def make_positive_definite(A):
         A[i,i] = A[i,i] if A[i,i]>0 else 1e-12 
     for i in range(d):
         for j in range(i+1,d):
-            if A[i,i]==1e-12 or A[j,j]==1e-12:
+            if A[i,i]<=1e-12 or A[j,j]<=1e-12:
                 A[i,j] = A[j,i] = 0
                 continue
             if A[i,j] > 0.95*(A[i,i]*A[j,j])**.5:

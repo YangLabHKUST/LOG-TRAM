@@ -330,6 +330,8 @@ if __name__ == '__main__':
             compression='infer',sep='\t').columns.values[4:].tolist()
         else:
             annot_names = np.loadtxt(args.annot_names,dtype=str).tolist()
+            if type(annot_names) == str:
+                annot_names = [annot_names]
         
         n_window = len(annot_names)
         logger.info("Detecting {} functional annotations: {}...".format(n_window,','.join(annot_names[:3])))
