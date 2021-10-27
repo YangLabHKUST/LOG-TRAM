@@ -1,7 +1,7 @@
 # TRAM-LOG
 TRAM-LOG: a statistical framework for trans-ancestry association mapping by leveraging the local genetic structure
 
-### Installation
+## Installation
 ``` shell
 git clone https://github.com/YangLabHKUST/TRAM-LOGbeta.git
 cd TRAM
@@ -13,16 +13,16 @@ check the installation status
 python ./src/TRAM.py -h
 ```
 
-### Quick start
+## Quick start
 
-#### Data preparation
+### Data preparation
 
 Input files of TRAM include:
 
-- summay statistics files of the target and auxiliary population
+- GWAS summay statistics files of the target and auxiliary populations
 - LDscore files (from LDXR)
 
-The TRAM format GWAS summary statistics file has at least 6 fields:
+The TRAM format GWAS summary statistics file has at least 11 fields:
 
 - SNP: SNP rsid
 - CHR: chromosome
@@ -37,7 +37,7 @@ The TRAM format GWAS summary statistics file has at least 6 fields:
 - P: p-value 
 
 
-#### Usage
+### Usage
 ``` shell
 python <install path>/src/TRAM.py \\
         --out test \\
