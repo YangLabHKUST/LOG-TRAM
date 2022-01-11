@@ -1,9 +1,9 @@
-# TRAM-LOG
-TRAM-LOG: a statistical framework for trans-ancestry association mapping by leveraging the local genetic structure
+# LOG-TRAM
+Leveraging the local genetic structure for trans-ancestry association mapping
 
 ## Installation
 ``` shell
-git clone https://github.com/YangLabHKUST/TRAM-LOGbeta.git
+git clone https://github.com/YangLabHKUST/LOG-TRAM.git
 cd TRAM
 conda env create -f environment.yml
 conda activate tram
