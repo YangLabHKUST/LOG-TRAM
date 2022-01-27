@@ -80,7 +80,7 @@ optional arguments:
 
 ## Quick start
 
-We illustrate the usage of LOG-TRAM using the GWAS summary statistics of BMI from BBJ and UKBB. The datasets and LDscores files involved in the following example is availabel from [here](https://www.dropbox.com/sh/9asugdlu1lbal8o/AAB0martsgaBoR8B4hq2pc25a?dl=0)
+We illustrate the usage of LOG-TRAM by applying it to the GWAS summary statistics of BMI from BBJ and UKBB with 1 Mbp non-overlapping sliding windows as local regions. The GWAS datasets and LDscores files involved in the following example are availabel from [here](https://www.dropbox.com/sh/9asugdlu1lbal8o/AAB0martsgaBoR8B4hq2pc25a?dl=0)
 
 ### Data preparation
 
