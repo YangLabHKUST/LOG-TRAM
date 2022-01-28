@@ -4,7 +4,7 @@ Leveraging the local genetic structure for trans-ancestry association mapping
 ## Installation
 ``` shell
 $ git clone https://github.com/YangLabHKUST/LOG-TRAM.git
-$ cd TRAM
+$ cd LOG-TRAM
 $ conda env create -f environment.yml
 $ conda activate tram
 ```
@@ -122,7 +122,7 @@ For reproducibility, we provide the LDscore files of EUR, EAS, and trans-ancestr
 
 
 ### Usage
-It takes 8 mins to run the following meta-analysis for the whole genome (computing environment: 20 CPU cores of Intel(R) Xeon(R) Gold 6230N CPU @ 2.30GHz processor, 1TB of memory, and a 22 TB solid-state disk).
+It takes 8 mins to run the following meta-analysis for the whole genome (computing environment: 20 CPU cores of Intel(R) Xeon(R) Gold 6230N CPU @ 2.30GHz processor, 1TB of memory, and a 22 TB solid-state disk). 
 
 ``` shell
 python <install path>/src/LOG-TRAM.py \\
@@ -134,7 +134,7 @@ python <install path>/src/LOG-TRAM.py \\
 
 ### Results
 
-LOG-TRAM will output two meta-analysis files, corresponding to EAS and EUR respectively. Usually, we focus on the under-represented populations such as EAS:
+LOG-TRAM will output two meta-analysis files, corresponding to EAS and EUR respectively. LOG-TRAM will add the inputed phenotype name after `--out` argument automatically. Usually, we focus on the under-represented populations such as EAS:
 
 ``` shell
 $ head BMI_meta_TRAM_pop2_BMI_BBJ.txt
@@ -149,7 +149,7 @@ CHR     BP      SNP     A1      A2      FRQ     BETA    SE      Z       P       
 1       918573  rs2341354       A       G       0.8325  -0.0006012663641836504  0.0020557010902238363   -0.29248725266676834    7.699141048816635e-1   85894    97954.28694930511
 1       928836  rs9777703       C       T       0.9876  -0.0038126379088130754  0.006975857051358909    -0.5465475970540948     5.8468957920787386e-1  85894    97954.28694930511
 ```
-**N** is the original GWAS sample size, **N_eff** is the computed effective sample size 
+**N** is the original GWAS sample size, **N_eff** is the computed effective sample size. **N_eff** should be larger than **N** as LOG-TRAM can brorrow information from the large-scale auxiliary dataset.
 
 
 ## Contact information
