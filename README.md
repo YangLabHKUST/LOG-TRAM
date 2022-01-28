@@ -62,12 +62,6 @@ optional arguments:
                         number of threads
 ```
 
-## Reproducibility
-
-We provide source codes and datasets for reproducing the experiments of LOG-TRAM meta-analysis of BMI and T2D in the `demos` directory.
-+ [BMI](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/BMI-demo.ipynb)
-+ [T2D](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/T2D-demo.ipynb)
-
 
 ## Quick start
 

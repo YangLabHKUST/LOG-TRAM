@@ -3,7 +3,6 @@ import numpy as np
 import logging
 import sys
 import copy
-from pandas_plink import read_plink1_bin
 import os
 from scipy import linalg
 import scipy.stats as st
@@ -33,30 +32,6 @@ def configure_logging(logger_name):
     sh.setFormatter(formatter)
     importer_logger.addHandler(sh)
     return importer_logger
-
-
-def ReadPlink(plink_file,bim,dtype=np.float32):
-    Genotype = read_plink1_bin(plink_file+".bed", plink_file+".bim", plink_file+".fam", verbose=False)
-    Genotype = Genotype.where(Genotype.snp.isin(Genotype.snp.values[bim['index'].values]), drop=True)
-    Genotype = Genotype.astype(np.int8)
-    G_geno = Genotype.values
-    G_geno[np.isnan(G_geno)] = 2
-    G_geno = 2-G_geno
-    return G_geno.astype(dtype)
-
-
-def ScaleGenotype(G_geno,dtype=np.float32):
-    # scale to mean 0, variance 1/p
-    G_geno_mean = G_geno.mean(axis=0)
-    G_geno_sd = G_geno.var(axis=0)**.5
-    G_geno = ((G_geno-G_geno_mean)/G_geno_sd)/np.sqrt(G_geno.shape[1])
-    return G_geno.astype(dtype), G_geno_mean/2, G_geno_sd
-
-
-def GenotypeMoment(G_geno):
-    G_geno_mean = G_geno.mean(axis=0)
-    G_geno_sd = G_geno.var(axis=0)**.5
-    return G_geno_mean, G_geno_sd
 
 
 def PLINK2MAMA(file,frq):
