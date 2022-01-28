@@ -1,9 +1,15 @@
 ##
 # Plots
 ##
-from assocplots.manhattan import *
-from assocplots.qqplot import *
+import numpy as np
 from matplotlib import style
+import matplotlib.pyplot as plt
+from scipy.stats.mstats import mquantiles
+from scipy.stats import binom
+from scipy.stats import norm
+from scipy.stats import beta
+from scipy.stats import linregress
+from scipy.stats import chi2
 style.use('ggplot')
 style.use('seaborn-white')
 
