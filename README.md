@@ -93,6 +93,7 @@ The LOG-TRAM format GWAS summary statistics file has at least 11 fields:
 - N: sample size
 - Z: Z-scores
 - P: p-value 
+
 e.g.,
 ``` shell
 $ head BMI_harmonized_pop2_BBJ.txt
