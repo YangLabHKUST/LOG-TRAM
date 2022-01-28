@@ -125,10 +125,10 @@ For reproducibility, we provide the LDscore files of EUR, EAS, and trans-ancestr
 Once the input files are formatted, LOG-TRAM will automatically preprocess the datasets, including SNPs overlapping and minor allele matching. It takes 8 mins to run the following meta-analysis for the whole genome (computing environment: 20 CPU cores of Intel(R) Xeon(R) Gold 6230N CPU @ 2.30GHz processor, 1TB of memory, and a 22 TB solid-state disk). 
 
 ``` shell
-python <install path>/src/LOG-TRAM.py \\
-        --out BMI_meta \\
-        --sumstats-popu1 BMI_harmonized_pop1_UKB.txt,BMI_UKB \\
-        --sumstats-popu2 BMI_harmonized_pop2_BBJ.txt,BMI_BBJ \\
+python <install path>/src/LOG-TRAM.py \
+        --out BMI_meta \
+        --sumstats-popu1 BMI_harmonized_pop1_UKB.txt,BMI_UKB \
+        --sumstats-popu2 BMI_harmonized_pop2_BBJ.txt,BMI_BBJ \
         --ldscores ldsc_annot_1mb_TGP_hm3_chr@_std 
 ```
 
