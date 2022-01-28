@@ -11,15 +11,12 @@ $ conda activate tram
 check the installation status
 ```shell
 $ python ./src/LOG-TRAM.py -h
-usage: LOG-TRAM.py [-h] --out OUT --sumstats-popu1 FILE,PHENOTYPE
-               [FILE,PHENOTYPE ...] --sumstats-popu2 FILE,PHENOTYPE
-               [FILE,PHENOTYPE ...] --ldscores LDSCORES
-               [--annot-names ANNOT_NAMES] [--use_snps USE_SNPS]
-               [--out-harmonized] [--out-reg-coef {yes,no}]
-               [--local-anno {yes,no}] [--reg-int-ident] [--reg-int-diag]
-               [--reg-ld-coef REG_LD_COEF]
-               [--allowed-chr-values ALLOWED_CHR_VALUES [ALLOWED_CHR_VALUES ...]]
-               [--remove-palindromic-snps] [--num_threads NUM_THREADS]
+usage: LOG-TRAM.py [-h] --out OUT --sumstats-popu1 FILE,PHENOTYPE [FILE,PHENOTYPE ...] --sumstats-popu2 FILE,PHENOTYPE
+                   [FILE,PHENOTYPE ...] --ldscores LDSCORES [--use_snps USE_SNPS] [--out-harmonized]
+                   [--out-reg-coef {yes,no}] [--local-anno {yes,no}] [--annot-names ANNOT_NAMES] [--reg-int-ident]
+                   [--reg-int-diag] [--reg-ld-coef REG_LD_COEF]
+                   [--allowed-chr-values ALLOWED_CHR_VALUES [ALLOWED_CHR_VALUES ...]] [--remove-palindromic-snps]
+                   [--num_threads NUM_THREADS]
 
 Leverage local genetic architecture for trans-ancestry association mapping
 
@@ -27,56 +24,50 @@ optional arguments:
   -h, --help            show this help message and exit
   --out OUT             output file path
   --sumstats-popu1 FILE,PHENOTYPE [FILE,PHENOTYPE ...]
-                        summary statisitcs F(file path),P(phenotype)
-                        of population 1, separated by whitespace
+                        summary statisitcs F(file path),P(phenotype) of population 1, separated by whitespace
   --sumstats-popu2 FILE,PHENOTYPE [FILE,PHENOTYPE ...]
-                        summary statisitcs F(file path),P(phenotype)
-                        of population 2, separated by whitespace
-  --ldscores LDSCORES   specifies prefix of the LD score files computed by
-                        S-LDXR (popu1 <corresponding to population of
-                        --sumstats-popu1>, popu2 <corresponding to population
-                        of --sumstats-popu2>, trans-ethnic), If the filename
-                        prefix contains the symbol @, LOG-TRAM will replace the @
-                        symbol with chromosome number, then add the suffix
-                        _pop1.gz/_pop2.gz/_te.gz
-  --use_snps USE_SNPS   SNPs list file (one rsID per line), If specified, this
-                        list will be used to restrict the final list of SNPs
-                        reported
-  --out-harmonized      If specified, LOG-TRAM will output harmonized summary
-                        statistics to disk
+                        summary statisitcs F(file path),P(phenotype) of population 2, separated by whitespace
+  --ldscores LDSCORES   specifies prefix of the LD score files computed by S-LDXR (popu1 <corresponding to population
+                        of --sumstats-popu1>, popu2 <corresponding to population of --sumstats-popu2>, trans-ethnic),
+                        If the filename prefix contains the symbol @, LOG-TRAM will replace the @ symbol with
+                        chromosome number, then add the suffix _pop1.gz/_pop2.gz/_te.gz
+  --use_snps USE_SNPS   SNPs list file (one rsID per line), If specified, this list will be used to restrict the final
+                        list of SNPs reported
+  --out-harmonized      If specified, LOG-TRAM will output harmonized summary statistics to disk
   --out-reg-coef {yes,no}
-                        If specified, LOG-TRAM will output LD score regression
-                        coeficients to disk
+                        If specified, LOG-TRAM will output LD score regression coeficients to disk
   --local-anno {yes,no}
-                        Optional argument indicating that the annotation is
-                        non-overlapping sliding windows across the genome. If
-                        this arugument is specified, then the LDScore
-                        regression will be perfromed on the 'base' LD score
-                        column and one local genetic annotation at a time to
-                        avoid singular matrix problem (because the 'base' LD
-                        score column almost equals to the sum of other LD
-                        score columns in this case).
+                        Optional argument indicating that the annotation is non-overlapping sliding windows across the
+                        genome. If this arugument is specified as 'yes', then the LDScore regression will be perfromed
+                        on the 'base' LD score column and one local genetic annotation at a time to avoid singular
+                        matrix problem (because the 'base' LD score column almost equals to the sum of other LD score
+                        columns in this case). \If this arugument is specified as 'no', then the LDScore regression
+                        will be perfromed on the all LD score columns, which is typically used in functional/SEG
+                        annotations.
   --annot-names ANNOT_NAMES
-                        Functinoal annotation name list file, one name per
-                        line (do not include "base")
-  --reg-int-ident       Optional argument indicating that the LDscore
-                        regression intercept matrix should be set to be the
-                        identity matrix.
-  --reg-int-diag        Optional argument indicating that the LDscore
-                        regression intercept matrix should have off-diagonal
-                        elements set to zero
+                        File to specify the allowed functinoal/SEG annotation names to be analyzed, one name per line
+                        (do not include "base")
+  --reg-int-ident       Optional argument indicating that the LDscore regression intercept matrix should be set to be
+                        the identity matrix.
+  --reg-int-diag        Optional argument indicating that the LDscore regression intercept matrix should have off-
+                        diagonal elements set to zero
   --reg-ld-coef REG_LD_COEF
-                        Optional argument indicating the file (dict data type
-                        store in .npy file) containing the regression
-                        coeficient for LDscores of functional annotations
+                        Optional argument indicating the file (dict data type store in .npy file) containing the
+                        regression coeficient for LDscores of functional annotations
   --allowed-chr-values ALLOWED_CHR_VALUES [ALLOWED_CHR_VALUES ...]
                         specify the allowed values for the chromosome
   --remove-palindromic-snps
-                        This option removes the SNPs whose major and minor
-                        alleles form a base pair
+                        This option removes the SNPs whose major and minor alleles form a base pair
   --num_threads NUM_THREADS
                         number of threads
 ```
+
+## Reproducibility
+
+We provide source codes for reproducing the experiments of LOG-TRAM meta-analysis of BMI and T2D in `demos` directory.
++ [BMI]
++ [T2D]
+
 
 ## Quick start
 

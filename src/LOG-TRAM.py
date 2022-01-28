@@ -5,14 +5,14 @@ import argparse
 import os
 from utils import *
 
-__version__ = '1.0.1'
+__version__ = '1.0.0'
 SOFTWARE_CORRESPONDENCE_EMAIL1 = 'jxiaoae@connect.ust.hk'
 SOFTWARE_CORRESPONDENCE_EMAIL2 = 'mcaiad@connect.ust.hk' 
 
 HEADER = """
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 <> 
-<> TRAM: Leverage local genetic architecture and functional annotation for trans-ancestry association mapping
+<> LOG-TRAM: Leveraging the local genetic structure for trans-ancestry association mapping
 <> Version: %s
 <> MIT License
 <>
@@ -20,7 +20,7 @@ HEADER = """
 <> Software-related correspondence: %s or %s
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 <> example:
-    python <install path>/src/TRAM.py \\
+    python <install path>/src/LOG-TRAM.py \\
         --out test \\
         --sumstats-popu1 ss_file1,ss_name1 \\
         --sumstats-popu2 ss_file2,ss_name2 \\
@@ -36,28 +36,28 @@ if __name__ == '__main__':
     # Input / output 
     parser.add_argument('--out', type=str, help='output file path', required=True)
     parser.add_argument('--sumstats-popu1', type=str, nargs="+", metavar="FILE,PHENOTYPE", 
-        help='summary statisitcs triples F(file path),P(phenotype) of population 1, separated by whitespace',required=True)
+        help='summary statisitcs F(file path),P(phenotype) of population 1, separated by whitespace',required=True)
     parser.add_argument('--sumstats-popu2', type=str, nargs="+", metavar="FILE,PHENOTYPE", 
-        help='summary statisitcs triples F(file path),P(phenotype) of population 2, separated by whitespace',required=True)
+        help='summary statisitcs F(file path),P(phenotype) of population 2, separated by whitespace',required=True)
     parser.add_argument('--ldscores', type=str,
         help='specifies prefix of the LD score files computed by S-LDXR \
             (popu1 <corresponding to population of --sumstats-popu1>, \
             popu2 <corresponding to population of --sumstats-popu2>, trans-ethnic), \
-            If the filename prefix contains the symbol @, TRAM will replace the @ symbol \
+            If the filename prefix contains the symbol @, LOG-TRAM will replace the @ symbol \
             with chromosome number, then add the suffix _pop1.gz/_pop2.gz/_te.gz',required=True)
-    parser.add_argument('--annot-names', type=str,
-       help='Functinoal annotation name list file, one name per line (do not include "base")',required=False)
     parser.add_argument('--use_snps', type=str, 
         help='SNPs list file (one rsID per line), If specified, this list will be used to restrict the final list of SNPs reported')
     parser.add_argument('--out-harmonized', action="store_true", 
-        help='If specified, TRAM will output harmonized summary statistics to disk')
+        help='If specified, LOG-TRAM will output harmonized summary statistics to disk')
     parser.add_argument('--out-reg-coef', type=str, default='yes', choices=['yes','no'],
-        help='If specified, TRAM will output LD score regression coeficients to disk')
+        help='If specified, LOG-TRAM will output LD score regression coeficients to disk')
     # Regression option
     parser.add_argument("--local-anno", type=str, default='yes', choices=['yes','no'],
         help="Optional argument indicating that the annotation is non-overlapping sliding windows across the genome.\
-            If this arugument is specified, then the LDScore regression will be perfromed on the 'base' LD score column and one local genetic annotation at a time to \
-                avoid singular matrix problem (because the 'base' LD score column almost equals to the sum of other LD score columns in this case).")
+            If this arugument is specified as 'yes', then the LDScore regression will be perfromed on the 'base' LD score column and one local genetic annotation at a time to \
+                avoid singular matrix problem (because the 'base' LD score column almost equals to the sum of other LD score columns in this case). \\If this arugument is specified as 'no', then the LDScore regression will be perfromed on the all LD score columns, which is typically used in functional/SEG annotations.")
+    parser.add_argument('--annot-names', type=str,
+       help='File to specify the allowed functinoal/SEG annotation names to be analyzed, one name per line (do not include "base")',required=False)
     parser.add_argument("--reg-int-ident", action="store_true",
         help="Optional argument indicating that the LDscore regression intercept matrix should be set to be the identity matrix.")
     parser.add_argument("--reg-int-diag", action="store_true",
