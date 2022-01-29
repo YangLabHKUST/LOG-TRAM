@@ -13,6 +13,9 @@ HEADER = """
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 <> 
 <> LOG-TRAM: Leveraging the local genetic structure for trans-ancestry association mapping
+<> ###
+<> # This is for functional/SEG annotation version, still in development !!!
+<> ###
 <> Version: %s
 <> MIT License
 <>
@@ -20,11 +23,11 @@ HEADER = """
 <> Software-related correspondence: %s or %s
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 <> example:
-    python <install path>/src/LOG-TRAM.py \\
+    python <install path>/src/Anno-TRAM.py \\
         --out test \\
         --sumstats-popu1 ss_file1,ss_name1 \\
         --sumstats-popu2 ss_file2,ss_name2 \\
-        --ldscores ldsc_annot_EUR_EAS_1mb_TGP_hm3_chr@_std \\
+        --ldscores ldsc_annot_Baseline_TGP_hm3_chr@_std \\
         --out-harmonized 
         
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>       
@@ -49,19 +52,28 @@ if __name__ == '__main__':
         help='SNPs list file (one rsID per line), If specified, this list will be used to restrict the final list of SNPs reported')
     parser.add_argument('--out-harmonized', action="store_true", 
         help='If specified, LOG-TRAM will output harmonized summary statistics to disk')
-    parser.add_argument('--out-reg-coef', action="store_true",
+    parser.add_argument('--out-reg-coef', type=str, default='yes', choices=['yes','no'],
         help='If specified, LOG-TRAM will output LD score regression coeficients to disk')
     # Regression option
+    parser.add_argument("--local-anno", type=str, default='yes', choices=['yes','no'],
+        help="Optional argument indicating that the annotation is non-overlapping sliding windows across the genome.\
+            If this arugument is specified as 'yes', then the LDScore regression will be perfromed on the 'base' LD score column and one local genetic annotation at a time to \
+                avoid singular matrix problem (because the 'base' LD score column almost equals to the sum of other LD score columns in this case). \\If this arugument is specified as 'no', then the LDScore regression will be perfromed on the all LD score columns, which is typically used in functional/SEG annotations.")
+    parser.add_argument('--annot-names', type=str,
+       help='File to specify the allowed functinoal/SEG annotation names to be analyzed, one name per line (do not include "base")',required=False)
     parser.add_argument("--reg-int-ident", action="store_true",
         help="Optional argument indicating that the LDscore regression intercept matrix should be set to be the identity matrix.")
     parser.add_argument("--reg-int-diag", action="store_true",
         help="Optional argument indicating that the LDscore regression intercept matrix should have off-diagonal elements set to zero")
+    parser.add_argument('--reg-ld-coef', type=str,
+       help='Optional argument indicating the file (dict data type store in .npy file) containing the regression \
+           coeficient for LDscores of functional annotations')
     # Summary Statistics Filtering Options
     parser.add_argument("--allowed-chr-values", type=str.upper, nargs="+",
         help='specify the allowed values for the chromosome')
     parser.add_argument("--remove-palindromic-snps", action="store_true",
         help='This option removes the SNPs whose major and minor alleles form a base pair')
-    parser.add_argument('--num_threads', type=str, help='number of threads', default="32")
+    parser.add_argument('--num_threads', type=str, help='number of threads', default="22")
     args = parser.parse_args()
 
     os.environ["OMP_NUM_THREADS"] = args.num_threads
@@ -189,18 +201,13 @@ if __name__ == '__main__':
 
     # convert to stdized units 
     for k,v in sumstats_pop1.items():
-        #conversion_factor_col = np.sqrt(2.0 * v['FRQ'] * (1.0 - v['FRQ']))
-        #v['BETA'] = v['BETA'] * conversion_factor_col
-        #v['SE'] = v['SE'] * conversion_factor_col
-        v['BETA'] = v.apply(lambda x:x['Z']/np.sqrt(x['N']),axis=1)
-        v['SE'] = v['N'].map(lambda x:1/np.sqrt(x))
+        conversion_factor_col = np.sqrt(2.0 * v['FRQ'] * (1.0 - v['FRQ']))
+        v['BETA'] = v['BETA'] * conversion_factor_col
+        v['SE'] = v['SE'] * conversion_factor_col
     for k,v in sumstats_pop2.items():
-        #conversion_factor_col = np.sqrt(2.0 * v['FRQ'] * (1.0 - v['FRQ']))
-        #v['BETA'] = v['BETA'] * conversion_factor_col
-        #v['SE'] = v['SE'] * conversion_factor_col
-        v['BETA'] = v.apply(lambda x:x['Z']/np.sqrt(x['N']),axis=1)
-        v['SE'] = v['N'].map(lambda x:1/np.sqrt(x))
-
+        conversion_factor_col = np.sqrt(2.0 * v['FRQ'] * (1.0 - v['FRQ']))
+        v['BETA'] = v['BETA'] * conversion_factor_col
+        v['SE'] = v['SE'] * conversion_factor_col
 
     # Run LD score regressions
     logger.info("Running LD Score regression for the whole genome.")
@@ -226,85 +233,206 @@ if __name__ == '__main__':
     else:
         chrs = args.allowed_chr_values
 
-    res_omegas_local = {}
-    # Run LD score regressions for annotation
-    logger.info("\nRunning LD Score regression and LOG-TRAM for local regions chromosome by chromosome.\n")
-    for c in chrs:
-        ldscore1_c = pd.read_csv(args.ldscores.replace('@',c)+'_pop1.gz',compression='infer',sep='\t')
-        ldscore2_c = pd.read_csv(args.ldscores.replace('@',c)+'_pop2.gz',compression='infer',sep='\t')
-        ldscorete_c = pd.read_csv(args.ldscores.replace('@',c)+'_te.gz',compression='infer',sep='\t')
-        ldscore1_c = ldscore1_c.loc[ldscore1_c['SNP'].isin(df_ldsc_pop1['SNP'])].reset_index(drop=True)
-        ldscore2_c = ldscore2_c.loc[ldscore2_c['SNP'].isin(df_ldsc_pop1['SNP'])].reset_index(drop=True)
-        ldscorete_c = ldscorete_c.loc[ldscorete_c['SNP'].isin(df_ldsc_pop1['SNP'])].reset_index(drop=True)
-        chr_snp_idx = df_ldsc_pop1.loc[df_ldsc_pop1['CHR']==c].index.values
-        snp_num_c = chr_snp_idx.shape[0]
-        logger.info("Processing chromosome {}, SNPs number: {}".format(c,chr_snp_idx.shape[0]))
-        
-        sumstats_pop1_c = {}
-        beta_array = np.zeros((snp_num_c,P1n+P2n))
-        se_array = np.zeros((snp_num_c,P1n+P2n))
-        for i,ss_name in enumerate(sumstats_pop1_names):
-            v = sumstats_pop1[ss_name].copy()
-            v = v.loc[v['CHR']==c].reset_index(drop=True)
-            sumstats_pop1_c[ss_name] = v
-            beta_array[:,i] = v['BETA'].values
-            se_array[:,i] = v['SE'].values
-        sumstats_pop2_c = {}
-        for i,ss_name in enumerate(sumstats_pop2_names):
-            v = sumstats_pop2[ss_name].copy()
-            v = v.loc[v['CHR']==c].reset_index(drop=True)
-            sumstats_pop2_c[ss_name] = v
-            beta_array[:,i+P1n] = v['BETA'].values
-            se_array[:,i+P1n] = v['SE'].values
-        
-        name_windows = list(ldscore1_c.columns.values[4:])
-        n_window = len(name_windows)
-        ldscore1_cbase = ldscore1_c['base'].values
-        ldscore2_cbase = ldscore2_c['base'].values
-        ldscorete_cbase = ldscorete_c['base'].values
-        logger.info("find {} local regions in chromosome {}".format(len(name_windows),c))
-        omega_windows = np.zeros((len(name_windows),P1n+P2n,P1n+P2n))
-        
-        omega_ldscore_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
-        sigma_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
-        
-        ldscore1_jk = np.zeros((snp_num_c,2))
-        ldscore1_jk[:,0] = ldscore1_cbase
-        ldscore2_jk = np.zeros((snp_num_c,2))
-        ldscore2_jk[:,0] = ldscore2_cbase
-        ldscorex_jk = np.zeros((snp_num_c,2))
-        ldscorex_jk[:,0] = ldscorete_cbase
-            
-        for k,name_window in enumerate(name_windows):
-            start,end = int(name_window.split('_')[1]),int(name_window.split('_')[2])
-            idx_snp_window_chr = ldscore1_c.loc[(ldscore1_c['BP']>=start)&(ldscore1_c['BP']<end)].index.values
-            p_window = idx_snp_window_chr.shape[0]
-            
-            ldscore1_jk[:,1] = ldscore1_c[name_window].values
-            ldscore2_jk[:,1] = ldscore2_c[name_window].values
-            ldscorex_jk[:,1] = ldscorete_c[name_window].values
-        
-            omega_window, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
-                sumstats_pop2_c,ldscore1_jk,ldscore2_jk,ldscorex_jk,Sigma_LD)
-            omega_window = make_positive_definite(omega_window.sum(axis=0))
-            omega_windows[k] = omega_window
+    if args.local_anno == 'yes':
+        res_omegas_local = {}
 
-            for j in range(p_window):
-                sigma_snps[idx_snp_window_chr[j]] = np.diag(se_array[idx_snp_window_chr[j]]) @ Sigma_LD @ np.diag(se_array[idx_snp_window_chr[j]])
-                ld_matrx_j = np.zeros_like(omega_window)
-                ld_matrx_j[:P1n,:P1n] = ldscore1_cbase[idx_snp_window_chr[j]]
-                ld_matrx_j[:P1n,P1n:] = ld_matrx_j[P1n:,:P1n] = ldscorete_cbase[idx_snp_window_chr[j]]
-                ld_matrx_j[P1n:,P1n:] = ldscore2_cbase[idx_snp_window_chr[j]]
-                omega_ldscore_snps[idx_snp_window_chr[j]] = omega_window*ld_matrx_j
-                
-        # Run the LOG-TRAM method
-        new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
-        tram_res_beta[chr_snp_idx] = new_betas
-        tram_res_beta_se[chr_snp_idx] = new_beta_ses
-        res_omegas_local[c] = dict(zip(name_windows,omega_windows))
-    if args.out_reg_coef:
-        logger.info("Saving local regions regression coefficients to file %s \n",args.out+'_TRAM_reg_coefs.npy')
-        np.save(args.out+'_TRAM_reg_coefs.npy',res_omegas_local)
+        # Run LD score regressions for annotation
+        logger.info("\nRunning LD Score regression and TRAM for local regions chromosome by chromosome.\n")
+
+        for c in chrs:
+            ldscore1_c = pd.read_csv(args.ldscores.replace('@',c)+'_pop1.gz',compression='infer',sep='\t')
+            ldscore2_c = pd.read_csv(args.ldscores.replace('@',c)+'_pop2.gz',compression='infer',sep='\t')
+            ldscorete_c = pd.read_csv(args.ldscores.replace('@',c)+'_te.gz',compression='infer',sep='\t')
+            ldscore1_c = ldscore1_c.loc[ldscore1_c['SNP'].isin(df_ldsc_pop1['SNP'])]
+            ldscore2_c = ldscore2_c.loc[ldscore2_c['SNP'].isin(df_ldsc_pop1['SNP'])]
+            ldscorete_c = ldscorete_c.loc[ldscorete_c['SNP'].isin(df_ldsc_pop1['SNP'])]
+            chr_snp_idx = df_ldsc_pop1.loc[df_ldsc_pop1['CHR']==c].index.values
+            snp_num_c = chr_snp_idx.shape[0]
+            logger.info("Processing chromosome {}, SNPs number: {}".format(c,chr_snp_idx.shape[0]))
+            sumstats_pop1_c = {}
+            beta_array = np.zeros((snp_num_c,P1n+P2n))
+            se_array = np.zeros((snp_num_c,P1n+P2n))
+            for i,ss_name in enumerate(sumstats_pop1_names):
+                v = sumstats_pop1[ss_name].copy()
+                v = v.loc[v['CHR']==c].reset_index(drop=True)
+                sumstats_pop1_c[ss_name] = v
+                beta_array[:,i] = v['BETA'].values
+                se_array[:,i] = v['SE'].values
+            sumstats_pop2_c = {}
+            for i,ss_name in enumerate(sumstats_pop2_names):
+                v = sumstats_pop2[ss_name].copy()
+                v = v.loc[v['CHR']==c].reset_index(drop=True)
+                sumstats_pop2_c[ss_name] = v
+                beta_array[:,i+P1n] = v['BETA'].values
+                se_array[:,i+P1n] = v['SE'].values
+
+            name_windows = list(ldscore1_c.columns.values[4:])
+            n_window = len(name_windows)
+            ldscore1_ck = ldscore1_c[['base']+name_windows].values
+            ldscore2_ck = ldscore2_c[['base']+name_windows].values
+            ldscorete_ck = ldscorete_c[['base']+name_windows].values
+            logger.info("find {} local regions in chromosome {}".format(len(name_windows),c))
+            omegas_local = np.zeros((1+len(name_windows),P1n+P2n,P1n+P2n))
+            omegas_local_baseLD = np.zeros((len(name_windows),P1n+P2n,P1n+P2n))
+            for i,name_window in enumerate(name_windows):
+                if ldscore1_ck[:,i+1].max()<1 or ldscore2_ck[:,i+1].max()<1: # in case of emmpty window
+                    omegas_local_k = np.zeros((2,P1n+P2n,P1n+P2n))
+                    omegas_local_k[0] = Omega_global
+                else:
+                    omegas_local_k, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
+                        sumstats_pop2_c,ldscore1_ck[:,[0,i+1]],ldscore2_ck[:,[0,i+1]],ldscorete_ck[:,[0,i+1]],Sigma_LD)
+                    if np.all(np.diag(omegas_local_k[1]) > 1e-10):
+                        omegas_local_k[1] = make_positive_definite(omegas_local_k[1])
+                omegas_local[i+1] = omegas_local_k.sum(axis=0)
+                omegas_local_baseLD[i] = omegas_local_k[0]
+            omegas_local_baseLD_mean = omegas_local_baseLD.mean(axis=0)
+            omegas_local[0] = 2*omegas_local_baseLD_mean
+            omegas_local -= omegas_local_baseLD_mean
+            logger.info("Local regions regression coefficients (LD):\n%s \n...", omegas_local[:2])
+            res_omegas_local[c] = dict(zip(['base']+name_windows,omegas_local))
+
+            logger.info("Creating omega and sigma matrices for each SNP.")
+            omega_ldscore_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
+            sigma_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
+            for j in range(snp_num_c):
+                sigma_snps[j] = np.diag(se_array[j])@Sigma_LD@np.diag(se_array[j])
+                ld_matrx_j = np.zeros_like(omegas_local)
+                ld_matrx_j[:,:P1n,:P1n] = np.repeat(ldscore1_ck[j],P1n**2).reshape(ldscore1_ck[j].shape[0],P1n,P1n)
+                ld_matrx_j[:,:P1n,P1n:] = np.repeat(ldscorete_ck[j],P1n*P2n).reshape(ldscorete_ck[j].shape[0],P1n,P2n)
+                ld_matrx_j[:,P1n:,:P1n] = np.repeat(ldscorete_ck[j],P1n*P2n).reshape(ldscorete_ck[j].shape[0],P2n,P1n)
+                ld_matrx_j[:,P1n:,P1n:] = np.repeat(ldscore2_ck[j],P2n**2).reshape(ldscore2_ck[j].shape[0],P2n,P2n)
+                omega_ldscore_snps[j] = (omegas_local*ld_matrx_j).sum(axis=0)
+            logger.info("Checking omega and sigma for validity based on positive (semi-)definiteness")
+            fails_snps_omega = []
+            fails_snps_sigma = []
+            for j in range(snp_num_c):
+                if not np.all(linalg.eigvalsh(omega_ldscore_snps[j]) >= 0.0):
+                    fails_snps_omega.append(j)
+                    omega_ldscore_snps[j] = make_positive_definite(omega_ldscore_snps[j])
+                if not np.all(linalg.eigvalsh(sigma_snps[j]) >= 0.0):
+                    fails_snps_sigma.append(j)
+                    sigma_snps[j] = make_positive_definite(sigma_snps[j])
+            logger.info("Adjusted %s SNPs to make omega positive definite.",len(fails_snps_omega))
+            logger.info("Adjusted %s SNPs to make sigma positive definite.",len(fails_snps_sigma))
+
+            # Run the TRAM method
+            logger.info("Run the core TRAM method\n")
+            new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
+            tram_res_beta[chr_snp_idx] = new_betas
+            tram_res_beta_se[chr_snp_idx] = new_beta_ses
+
+        if args.out_reg_coef == 'yes':
+            logger.info("Saving local regions regression coefficients to file %s \n",args.out+'_TRAM_reg_coefs.npy')
+            np.save(args.out+'_TRAM_reg_coefs.npy',res_omegas_local)
+    
+    else:
+        logger.info("Running LD Score regression for functional annotations.")
+
+        if args.annot_names is None:
+            annot_names = pd.read_csv(args.ldscores.replace('@',str(22))+'_pop1.gz',
+            compression='infer',sep='\t').columns.values[4:].tolist()
+        else:
+            annot_names = np.loadtxt(args.annot_names,dtype=str).tolist()
+            if type(annot_names) == str:
+                annot_names = [annot_names]
+        
+        n_window = len(annot_names)
+        logger.info("Detecting {} functional annotations: {}...".format(n_window,','.join(annot_names[:3])))
+        
+        df_ldsc_pop1_all = pd.concat(
+            (pd.read_csv(args.ldscores.replace('@',str(c))+'_pop1.gz',
+            compression='infer',sep='\t',dtype={'CHR':str})[['CHR','SNP','BP','base']+annot_names] for c in range(1,23)),
+            ignore_index=True)
+        df_ldsc_pop1_all = df_ldsc_pop1_all.loc[df_ldsc_pop1_all['SNP'].isin(df_ldsc_pop1['SNP'])]
+
+        df_ldsc_pop2_all = pd.concat(
+            (pd.read_csv(args.ldscores.replace('@',str(c))+'_pop2.gz',
+            compression='infer',sep='\t',dtype={'CHR':str})[['CHR','SNP','BP','base']+annot_names] for c in range(1,23)),
+            ignore_index=True)
+        df_ldsc_pop2_all = df_ldsc_pop2_all.loc[df_ldsc_pop2_all['SNP'].isin(df_ldsc_pop1['SNP'])]
+
+        df_ldsc_te_all = pd.concat(
+            (pd.read_csv(args.ldscores.replace('@',str(c))+'_te.gz',
+            compression='infer',sep='\t',dtype={'CHR':str})[['CHR','SNP','BP','base']+annot_names] for c in range(1,23)),
+            ignore_index=True)
+        df_ldsc_te_all = df_ldsc_te_all.loc[df_ldsc_te_all['SNP'].isin(df_ldsc_pop1['SNP'])]
+
+        ldscore1_all = df_ldsc_pop1_all[['base']+annot_names].values
+        ldscore2_all = df_ldsc_pop2_all[['base']+annot_names].values
+        ldscorete_all = df_ldsc_te_all[['base']+annot_names].values
+
+        omegas_local, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1,sumstats_pop2_names,\
+            sumstats_pop2,ldscore1_all,ldscore2_all,ldscorete_all,Sigma_LD)
+
+        for i,_ in enumerate(['base']+annot_names):
+            if np.all(np.diag(omegas_local[i]) > 1e-10):
+                omegas_local[i] = make_positive_definite(omegas_local[i])
+        
+        if args.reg_ld_coef is not None:
+            inp_omegas = np.load(args.reg_ld_coef,allow_pickle=True).item()
+            logger.info("Loading %s regression coeficent(s) from %s \n", len(inp_omegas.keys()), args.reg_ld_coef)
+            for i,an in enumerate(['base']+annot_names):
+                if an in inp_omegas.keys():
+                    omegas_local[i] = inp_omegas[an]
+
+        logger.info("Functional annotations regression coefficients (LD):\n%s \n...", omegas_local[:4])
+
+        if args.out_reg_coef == 'yes':
+            logger.info("Saving functional annotations regression coefficients to file %s \n",args.out+'_TRAM_reg_coefs.npy')
+            np.save(args.out+'_TRAM_reg_coefs.npy',dict(zip(['base']+annot_names,omegas_local)))
+
+        logger.info("\nRun the TRAM method chromosome by chromosome.\n")
+        for c in chrs:
+            chr_snp_idx = df_ldsc_pop1.loc[df_ldsc_pop1['CHR']==c].index.values
+            snp_num_c = chr_snp_idx.shape[0]
+            logger.info("Processing chromosome {}, SNPs number: {}".format(c,chr_snp_idx.shape[0]))
+            beta_array = np.zeros((snp_num_c,P1n+P2n))
+            se_array = np.zeros((snp_num_c,P1n+P2n))
+            N_array = np.zeros((snp_num_c,P1n+P2n))
+            for i,ss_name in enumerate(sumstats_pop1_names):
+                v = sumstats_pop1[ss_name].copy()
+                v = v.loc[v['CHR']==c]
+                beta_array[:,i] = v['BETA'].values
+                se_array[:,i] = v['SE'].values
+                N_array[:,i] = v['N'].values
+            for i,ss_name in enumerate(sumstats_pop2_names):
+                v = sumstats_pop2[ss_name].copy()
+                v = v.loc[v['CHR']==c]
+                beta_array[:,i+P1n] = v['BETA'].values
+                se_array[:,i+P1n] = v['SE'].values
+                N_array[:,i+P1n] = v['N'].values
+            
+            logger.info("Creating omega and sigma matrices for each SNP.")
+            omega_ldscore_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
+            sigma_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
+
+            for j in range(snp_num_c):
+                sigma_snps[j] = np.diag(se_array[j])@Sigma_LD@np.diag(se_array[j])
+                ld_matrx_j = np.zeros_like(omegas_local)
+                ld_matrx_j[:,:P1n,:P1n] = np.repeat(ldscore1_all[chr_snp_idx[j]],P1n**2).reshape(ldscore1_all[chr_snp_idx[j]].shape[0],P1n,P1n)
+                ld_matrx_j[:,:P1n,P1n:] = np.repeat(ldscorete_all[chr_snp_idx[j]],P1n*P2n).reshape(ldscorete_all[chr_snp_idx[j]].shape[0],P1n,P2n)
+                ld_matrx_j[:,P1n:,:P1n] = np.repeat(ldscorete_all[chr_snp_idx[j]],P1n*P2n).reshape(ldscorete_all[chr_snp_idx[j]].shape[0],P2n,P1n)
+                ld_matrx_j[:,P1n:,P1n:] = np.repeat(ldscore2_all[chr_snp_idx[j]],P2n**2).reshape(ldscore2_all[chr_snp_idx[j]].shape[0],P2n,P2n)
+                omega_ldscore_snps[j] = (omegas_local*ld_matrx_j).sum(axis=0)
+            logger.info("Checking omega and sigma for validity based on positive (semi-)definiteness")
+            fails_snps_omega = []
+            fails_snps_sigma = []
+            for j in range(snp_num_c):
+                if not np.all(linalg.eigvalsh(omega_ldscore_snps[j]) >= 0.0):
+                    fails_snps_omega.append(j)
+                    omega_ldscore_snps[j] = make_positive_definite(omega_ldscore_snps[j])
+                if not np.all(linalg.eigvalsh(sigma_snps[j]) >= 0.0):
+                    fails_snps_sigma.append(j)
+                    sigma_snps[j] = make_positive_definite(sigma_snps[j])
+            logger.info("Adjusted %s SNPs to make omega positive definite.",len(fails_snps_omega))
+            logger.info("Adjusted %s SNPs to make sigma positive definite.",len(fails_snps_sigma))
+
+            # Run the TRAM method
+            logger.info("Run the core TRAM method\n")
+            new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
+            tram_res_beta[chr_snp_idx] = new_betas
+            tram_res_beta_se[chr_snp_idx] = new_beta_ses
+
 
     logger.info("Preparing results")
     sumstats_pop1_new = {}
@@ -312,13 +440,7 @@ if __name__ == '__main__':
         ss_df = sumstats_pop1[ss_name].copy()
         ss_df['BETA_tram'] = tram_res_beta[:,i]
         ss_df['SE_tram'] = tram_res_beta_se[:,i]
-
-        ss_df.loc[ss_df['BETA_tram']==0,'BETA_tram'] = ss_df.loc[ss_df['BETA_tram']==0,'BETA']
-        ss_df.loc[ss_df['SE_tram']==0,'SE_tram'] = ss_df.loc[ss_df['SE_tram']==0,'SE']
-        ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA_tram'] = ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA']
-        ss_df.loc[ss_df['SE_tram'].isnull(),'SE_tram'] = ss_df.loc[ss_df['SE_tram'].isnull(),'SE']
-
-        ss_df['Z_tram'] = ss_df['BETA_tram']/ss_df['SE_tram']
+        ss_df['Z_tram'] = tram_res_beta[:,i]/tram_res_beta_se[:,i]
         ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]
         ss_df['P_tram'] = calculate_p(ss_df['Z_tram'].values)
         conversion_factor_col = np.reciprocal(np.sqrt(2.0 * ss_df['FRQ'] * (1.0 - ss_df['FRQ'])))
@@ -332,13 +454,7 @@ if __name__ == '__main__':
         ss_df = sumstats_pop2[ss_name].copy()
         ss_df['BETA_tram'] = tram_res_beta[:,i+P1n]
         ss_df['SE_tram'] = tram_res_beta_se[:,i+P1n]
-
-        ss_df.loc[ss_df['BETA_tram']==0,'BETA_tram'] = ss_df.loc[ss_df['BETA_tram']==0,'BETA']
-        ss_df.loc[ss_df['SE_tram']==0,'SE_tram'] = ss_df.loc[ss_df['SE_tram']==0,'SE']
-        ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA_tram'] = ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA']
-        ss_df.loc[ss_df['SE_tram'].isnull(),'SE_tram'] = ss_df.loc[ss_df['SE_tram'].isnull(),'SE']
-
-        ss_df['Z_tram'] = ss_df['BETA_tram']/ss_df['SE_tram']
+        ss_df['Z_tram'] = tram_res_beta[:,i+P1n]/tram_res_beta_se[:,i+P1n]
         ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]
         ss_df['P_tram'] = calculate_p(ss_df['Z_tram'].values)
         conversion_factor_col = np.reciprocal(np.sqrt(2.0 * ss_df['FRQ'] * (1.0 - ss_df['FRQ'])))

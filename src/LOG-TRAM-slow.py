@@ -13,6 +13,9 @@ HEADER = """
 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 <> 
 <> LOG-TRAM: Leveraging the local genetic structure for trans-ancestry association mapping
+<> ###
+<> # Run ldscore regression using whole genome for each window, so it is time consuming and unnecessary
+<> ###
 <> Version: %s
 <> MIT License
 <>
@@ -61,7 +64,7 @@ if __name__ == '__main__':
         help='specify the allowed values for the chromosome')
     parser.add_argument("--remove-palindromic-snps", action="store_true",
         help='This option removes the SNPs whose major and minor alleles form a base pair')
-    parser.add_argument('--num_threads', type=str, help='number of threads', default="32")
+    parser.add_argument('--num_threads', type=str, help='number of threads', default="22")
     args = parser.parse_args()
 
     os.environ["OMP_NUM_THREADS"] = args.num_threads
@@ -240,23 +243,6 @@ if __name__ == '__main__':
         snp_num_c = chr_snp_idx.shape[0]
         logger.info("Processing chromosome {}, SNPs number: {}".format(c,chr_snp_idx.shape[0]))
         
-        sumstats_pop1_c = {}
-        beta_array = np.zeros((snp_num_c,P1n+P2n))
-        se_array = np.zeros((snp_num_c,P1n+P2n))
-        for i,ss_name in enumerate(sumstats_pop1_names):
-            v = sumstats_pop1[ss_name].copy()
-            v = v.loc[v['CHR']==c].reset_index(drop=True)
-            sumstats_pop1_c[ss_name] = v
-            beta_array[:,i] = v['BETA'].values
-            se_array[:,i] = v['SE'].values
-        sumstats_pop2_c = {}
-        for i,ss_name in enumerate(sumstats_pop2_names):
-            v = sumstats_pop2[ss_name].copy()
-            v = v.loc[v['CHR']==c].reset_index(drop=True)
-            sumstats_pop2_c[ss_name] = v
-            beta_array[:,i+P1n] = v['BETA'].values
-            se_array[:,i+P1n] = v['SE'].values
-        
         name_windows = list(ldscore1_c.columns.values[4:])
         n_window = len(name_windows)
         ldscore1_cbase = ldscore1_c['base'].values
@@ -265,42 +251,52 @@ if __name__ == '__main__':
         logger.info("find {} local regions in chromosome {}".format(len(name_windows),c))
         omega_windows = np.zeros((len(name_windows),P1n+P2n,P1n+P2n))
         
-        omega_ldscore_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
-        sigma_snps = np.zeros((snp_num_c,P1n+P2n,P1n+P2n))
-        
-        ldscore1_jk = np.zeros((snp_num_c,2))
-        ldscore1_jk[:,0] = ldscore1_cbase
-        ldscore2_jk = np.zeros((snp_num_c,2))
-        ldscore2_jk[:,0] = ldscore2_cbase
-        ldscorex_jk = np.zeros((snp_num_c,2))
-        ldscorex_jk[:,0] = ldscorete_cbase
+        ldscore1_jk = np.zeros((len(snps_common),2))
+        ldscore1_jk[:,0] = df_ldsc_pop1['base'].values
+        ldscore2_jk = np.zeros((len(snps_common),2))
+        ldscore2_jk[:,0] = df_ldsc_pop2['base'].values
+        ldscorex_jk = np.zeros((len(snps_common),2))
+        ldscorex_jk[:,0] = df_ldsc_te['base'].values
             
         for k,name_window in enumerate(name_windows):
             start,end = int(name_window.split('_')[1]),int(name_window.split('_')[2])
+            idx_snp_window = df_ldsc_pop1.loc[(df_ldsc_pop1['CHR']==c)&(df_ldsc_pop1['BP']>=start)&(df_ldsc_pop1['BP']<end)].index.values
             idx_snp_window_chr = ldscore1_c.loc[(ldscore1_c['BP']>=start)&(ldscore1_c['BP']<end)].index.values
-            p_window = idx_snp_window_chr.shape[0]
+            p_window = idx_snp_window.shape[0]
             
-            ldscore1_jk[:,1] = ldscore1_c[name_window].values
-            ldscore2_jk[:,1] = ldscore2_c[name_window].values
-            ldscorex_jk[:,1] = ldscorete_c[name_window].values
-        
-            omega_window, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1_c,sumstats_pop2_names,\
-                sumstats_pop2_c,ldscore1_jk,ldscore2_jk,ldscorex_jk,Sigma_LD)
+            
+            ldscore1_jk[chr_snp_idx,1] = ldscore1_c[name_window].values
+            ldscore2_jk[chr_snp_idx,1] = ldscore2_c[name_window].values
+            ldscorex_jk[chr_snp_idx,1] = ldscorete_c[name_window].values
+            
+            omega_window, _ = run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1,sumstats_pop2_names,\
+                sumstats_pop2,ldscore1_jk,ldscore2_jk,ldscorex_jk,Sigma_LD)
             omega_window = make_positive_definite(omega_window.sum(axis=0))
             omega_windows[k] = omega_window
+            
+            omega_ldscore_snps = np.zeros((p_window,P1n+P2n,P1n+P2n))
+            sigma_snps = np.zeros((p_window,P1n+P2n,P1n+P2n))
+
+            beta_array = np.zeros((p_window,P1n+P2n))
+            se_array = np.zeros((p_window,P1n+P2n))
+            for i,ss_name in enumerate(sumstats_pop1_names):
+                beta_array[:,i] = sumstats_pop1[ss_name].loc[idx_snp_window,'BETA']
+                se_array[:,i] = sumstats_pop1[ss_name].loc[idx_snp_window,'SE']
+            for i,ss_name in enumerate(sumstats_pop2_names):
+                beta_array[:,i+P1n] = sumstats_pop2[ss_name].loc[idx_snp_window,'BETA']
+                se_array[:,i+P1n] = sumstats_pop2[ss_name].loc[idx_snp_window,'SE']
 
             for j in range(p_window):
-                sigma_snps[idx_snp_window_chr[j]] = np.diag(se_array[idx_snp_window_chr[j]]) @ Sigma_LD @ np.diag(se_array[idx_snp_window_chr[j]])
+                sigma_snps[j] = np.diag(se_array[j])@Sigma_LD@np.diag(se_array[j])
                 ld_matrx_j = np.zeros_like(omega_window)
                 ld_matrx_j[:P1n,:P1n] = ldscore1_cbase[idx_snp_window_chr[j]]
                 ld_matrx_j[:P1n,P1n:] = ld_matrx_j[P1n:,:P1n] = ldscorete_cbase[idx_snp_window_chr[j]]
                 ld_matrx_j[P1n:,P1n:] = ldscore2_cbase[idx_snp_window_chr[j]]
-                omega_ldscore_snps[idx_snp_window_chr[j]] = omega_window*ld_matrx_j
-                
-        # Run the LOG-TRAM method
-        new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
-        tram_res_beta[chr_snp_idx] = new_betas
-        tram_res_beta_se[chr_snp_idx] = new_beta_ses
+                omega_ldscore_snps[j] = omega_window*ld_matrx_j
+            # Run the LOG-TRAM method
+            new_betas, new_beta_ses = run_tram_method(beta_array,omega_ldscore_snps,sigma_snps)
+            tram_res_beta[idx_snp_window] = new_betas
+            tram_res_beta_se[idx_snp_window] = new_beta_ses
         res_omegas_local[c] = dict(zip(name_windows,omega_windows))
     if args.out_reg_coef:
         logger.info("Saving local regions regression coefficients to file %s \n",args.out+'_TRAM_reg_coefs.npy')
@@ -315,8 +311,6 @@ if __name__ == '__main__':
 
         ss_df.loc[ss_df['BETA_tram']==0,'BETA_tram'] = ss_df.loc[ss_df['BETA_tram']==0,'BETA']
         ss_df.loc[ss_df['SE_tram']==0,'SE_tram'] = ss_df.loc[ss_df['SE_tram']==0,'SE']
-        ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA_tram'] = ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA']
-        ss_df.loc[ss_df['SE_tram'].isnull(),'SE_tram'] = ss_df.loc[ss_df['SE_tram'].isnull(),'SE']
 
         ss_df['Z_tram'] = ss_df['BETA_tram']/ss_df['SE_tram']
         ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]
@@ -335,8 +329,6 @@ if __name__ == '__main__':
 
         ss_df.loc[ss_df['BETA_tram']==0,'BETA_tram'] = ss_df.loc[ss_df['BETA_tram']==0,'BETA']
         ss_df.loc[ss_df['SE_tram']==0,'SE_tram'] = ss_df.loc[ss_df['SE_tram']==0,'SE']
-        ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA_tram'] = ss_df.loc[ss_df['BETA_tram'].isnull(),'BETA']
-        ss_df.loc[ss_df['SE_tram'].isnull(),'SE_tram'] = ss_df.loc[ss_df['SE_tram'].isnull(),'SE']
 
         ss_df['Z_tram'] = ss_df['BETA_tram']/ss_df['SE_tram']
         ss_df = ss_df.loc[ss_df['CHR'].isin(chrs)]

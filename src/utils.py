@@ -214,9 +214,9 @@ def estimate_gc(sumstat1,sumstat2,ldscore1,ldscore2,ldscorex,reg_w1=1,reg_w2=1,c
     return tau1,tau2,theta
 
 
-def ldscore_regression_h2(df_eas,ldscore,intercept=None):
+def ldscore_regression_h2(idx1,df_eas,ldscore,intercept=None):
     if intercept is None:
-        idx1 = (df_eas['Z']**2<30).values
+        #idx1 = (df_eas['Z']**2<30).values
         fit_step1 = estimate_h2(df_eas.loc[idx1],ldscore[idx1],
                 reg_w1 = 1/ldscore[idx1,0],constrain_intercept=False)
         fit_step2 = estimate_h2(df_eas,ldscore,
@@ -229,8 +229,8 @@ def ldscore_regression_h2(df_eas,ldscore,intercept=None):
     return fit_step2
 
 
-def ldscore_regression_gc(df_eas,df_eur,ldscore1,ldscore2,ldscorete,intercept1=None,intercept2=None,interceptx=None):
-    idx1 = (df_eas['Z']**2<30).values & (df_eur['Z']**2<30).values
+def ldscore_regression_gc(idx1,df_eas,df_eur,ldscore1,ldscore2,ldscorete,intercept1=None,intercept2=None,interceptx=None):
+    #idx1 = (df_eas['Z']**2<30).values & (df_eur['Z']**2<30).values
     fit_step1 = estimate_gc(df_eas.loc[idx1],df_eur.loc[idx1],ldscore1[idx1],ldscore2[idx1],ldscorete[idx1],
             reg_w1 = 1/ldscore1[idx1,0],reg_w2 = 1/ldscore2[idx1,0],constrain_intercept=False)
     if intercept1 is None:
@@ -249,8 +249,8 @@ def ldscore_regression_gc(df_eas,df_eur,ldscore1,ldscore2,ldscorete,intercept1=N
     h1_snp = h1_snp if h1_snp>0 else 1e-12 
     h2_snp = h2_snp if h2_snp>0 else 1e-12 
     gc_avg = fit_step2[2][0]/np.sqrt(h1_snp*h2_snp)
-    gc_avg = gc_avg if gc_avg<1 else 0.95
-    gc_avg = gc_avg if gc_avg>-1 else -0.95   
+    gc_avg = gc_avg if gc_avg<1 else 0.99
+    gc_avg = gc_avg if gc_avg>-1 else -0.99   
     h12_snp = np.sqrt(h1_snp*h2_snp)*gc_avg
     fit_step2[2][0] = h12_snp
     return fit_step2[2]
@@ -261,6 +261,8 @@ def run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1,sumstats_pop2_name
     :return: A tuple holding regression coefficient matrices (ldscores, intercept)
     '''
     P1, P2 = len(sumstats_pop1_names), len(sumstats_pop2_names)
+    idx1 = np.array([(sumstats_pop1[_]['Z']**2<30).values for _ in sumstats_pop1_names]+
+         [(sumstats_pop2[_]['Z']**2<30).values for _ in sumstats_pop2_names]).all(axis=0)
     result_coefs = np.zeros((ldscore1.shape[1]+1, P1+P2, P1+P2))
     if intercept is not None:
         if intercept.shape[0] != intercept.shape[1] or intercept.shape[0] != P1+P2:
@@ -269,51 +271,51 @@ def run_ldscore_regressions(sumstats_pop1_names,sumstats_pop1,sumstats_pop2_name
     # Calculate diagonal coefficients first
     for p,ss_name in enumerate(sumstats_pop1_names):
         if intercept is None:
-            result_coefs[:,p,p] = ldscore_regression_h2(sumstats_pop1[ss_name],ldscore1)
+            result_coefs[:,p,p] = ldscore_regression_h2(idx1,sumstats_pop1[ss_name],ldscore1)
         else:
-            result_coefs[:,p,p] = ldscore_regression_h2(sumstats_pop1[ss_name],ldscore1,intercept[p,p])
+            result_coefs[:,p,p] = ldscore_regression_h2(idx1,sumstats_pop1[ss_name],ldscore1,intercept[p,p])
     for p,ss_name in enumerate(sumstats_pop2_names):
         if intercept is None:
-            result_coefs[:,p+P1,p+P1] = ldscore_regression_h2(sumstats_pop2[ss_name],ldscore2)
+            result_coefs[:,p+P1,p+P1] = ldscore_regression_h2(idx1,sumstats_pop2[ss_name],ldscore2)
         else:
-            result_coefs[:,p+P1,p+P1] = ldscore_regression_h2(sumstats_pop2[ss_name],ldscore2,intercept[p+P1,p+P1])
+            result_coefs[:,p+P1,p+P1] = ldscore_regression_h2(idx1,sumstats_pop2[ss_name],ldscore2,intercept[p+P1,p+P1])
     
 
     # Calculate each off-diagonal element
     for i in range(P1):
         for j in range(i+1,P1):
             if intercept is None:
-                result_coefs[:,i,j] = ldscore_regression_gc(sumstats_pop1[sumstats_pop1_names[i]],\
+                result_coefs[:,i,j] = ldscore_regression_gc(idx1,sumstats_pop1[sumstats_pop1_names[i]],\
                     sumstats_pop1[sumstats_pop1_names[j]],ldscore1,ldscore1,ldscore1)
             else:
-                result_coefs[:,i,j] = ldscore_regression_gc(sumstats_pop1[sumstats_pop1_names[i]],\
+                result_coefs[:,i,j] = ldscore_regression_gc(idx1,sumstats_pop1[sumstats_pop1_names[i]],\
                     sumstats_pop1[sumstats_pop1_names[j]],ldscore1,ldscore1,ldscore1,\
                         intercept[i,i],intercept[j,j],intercept[i,j])
             result_coefs[:,j,i] = result_coefs[:,i,j] 
     for i in range(P1):
         for j in range(P2):
             if intercept is None:
-                result_coefs[:,i,P1+j] = ldscore_regression_gc(sumstats_pop1[sumstats_pop1_names[i]],\
+                result_coefs[:,i,P1+j] = ldscore_regression_gc(idx1,sumstats_pop1[sumstats_pop1_names[i]],\
                     sumstats_pop2[sumstats_pop2_names[j]],ldscore1,ldscore2,ldscorete)
             else:
-                result_coefs[:,i,P1+j] = ldscore_regression_gc(sumstats_pop1[sumstats_pop1_names[i]],\
+                result_coefs[:,i,P1+j] = ldscore_regression_gc(idx1,sumstats_pop1[sumstats_pop1_names[i]],\
                     sumstats_pop2[sumstats_pop2_names[j]],ldscore1,ldscore2,ldscorete,\
                         intercept[i,i],intercept[P1+j,P1+j],intercept[i,P1+j])
             result_coefs[:,P1+j,i] = result_coefs[:,i,P1+j]
     for i in range(P2):
         for j in range(i+1,P2):
             if intercept is None:
-                result_coefs[:,P1+i,P1+j] = ldscore_regression_gc(sumstats_pop2[sumstats_pop2_names[i]],\
+                result_coefs[:,P1+i,P1+j] = ldscore_regression_gc(idx1,sumstats_pop2[sumstats_pop2_names[i]],\
                     sumstats_pop2[sumstats_pop2_names[j]],ldscore2,ldscore2,ldscore2)
             else:
-                result_coefs[:,P1+i,P1+j] = ldscore_regression_gc(sumstats_pop2[sumstats_pop2_names[i]],\
+                result_coefs[:,P1+i,P1+j] = ldscore_regression_gc(idx1,sumstats_pop2[sumstats_pop2_names[i]],\
                     sumstats_pop2[sumstats_pop2_names[j]],ldscore2,ldscore2,ldscore2,\
                         intercept[P1+i,P1+i],intercept[P1+j,P1+j],intercept[P1+i,P1+j])
             result_coefs[:,P1+j,P1+i] = result_coefs[:,P1+i,P1+j]
     return result_coefs[:-1], result_coefs[-1]    
 
 
-def make_positive_definite(A):
+def make_positive_definite(A,maxc=0.999):
     d = A.shape[0]
     for i in range(d):
         A[i,i] = A[i,i] if A[i,i]>0 else 1e-12 
@@ -322,10 +324,10 @@ def make_positive_definite(A):
             if A[i,i]<=1e-12 or A[j,j]<=1e-12:
                 A[i,j] = A[j,i] = 0
                 continue
-            if A[i,j] > 0.95*(A[i,i]*A[j,j])**.5:
-                A[i,j] = A[j,i] = 0.95*(A[i,i]*A[j,j])**.5
-            if A[i,j] < -0.95*(A[i,i]*A[j,j])**.5:
-                A[i,j] = A[j,i] = -0.95*(A[i,i]*A[j,j])**.5
+            if A[i,j] > maxc*(A[i,i]*A[j,j])**.5:
+                A[i,j] = A[j,i] = maxc*(A[i,i]*A[j,j])**.5
+            if A[i,j] < -maxc*(A[i,i]*A[j,j])**.5:
+                A[i,j] = A[j,i] = -maxc*(A[i,i]*A[j,j])**.5
     return A
 
 
