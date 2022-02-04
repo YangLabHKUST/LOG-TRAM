@@ -47,10 +47,11 @@ optional arguments:
 
 ## Reproducibility
 
-We provide source codes and datasets for reproducing the experiments of LOG-TRAM meta-analysis of BMI, SBP and T2D in the `demos` directory.
+We provide source codes and datasets for reproducing the experiments of LOG-TRAM meta-analysis of BMI, SBP, T2D and 26 other traits in the `demos` directory.
 + [BMI](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/BMI-demo.ipynb)
 + [SBP](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/SBP-demo.ipynb)
 + [T2D](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/T2D-demo.ipynb)
++ [26 OtherTraits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/26OtherTraits-demo.ipynb)
 
 
 ## Quick start
