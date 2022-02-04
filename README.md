@@ -51,7 +51,7 @@ We provide source codes and datasets for reproducing the experiments of LOG-TRAM
 + [BMI](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/BMI-demo.ipynb)
 + [SBP](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/SBP-demo.ipynb)
 + [T2D](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/T2D-demo.ipynb)
-+ [26 OtherTraits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/26OtherTraits-demo.ipynb)
++ [26 Other Traits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/26OtherTraits-demo.ipynb)
 
 
 ## Quick start
