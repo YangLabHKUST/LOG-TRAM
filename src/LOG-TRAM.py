@@ -101,7 +101,7 @@ if __name__ == '__main__':
     for ssfile in args.sumstats_popu1:
         sumstats_pop1_names.append(ssfile.split(',')[1])
         sumstats_pop1[ssfile.split(',')[1]] = pd.read_csv(ssfile.split(',')[0],
-            sep='\t',compression='infer',dtype={'CHR':int}).drop_duplicates('SNP').dropna()
+            sep='\t',compression='infer',dtype={'CHR':str}).drop_duplicates('SNP').dropna()
         logger.info("Sumstats {} shape: {}x{}".format(ssfile.split(',')[1],
             sumstats_pop1[ssfile.split(',')[1]].shape[0],sumstats_pop1[ssfile.split(',')[1]].shape[1])) 
     sumstats_pop2 = {}
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     for ssfile in args.sumstats_popu2:
         sumstats_pop2_names.append(ssfile.split(',')[1])
         sumstats_pop2[ssfile.split(',')[1]] = pd.read_csv(ssfile.split(',')[0],
-            sep='\t',compression='infer',dtype={'CHR':int}).drop_duplicates('SNP').dropna()
+            sep='\t',compression='infer',dtype={'CHR':str}).drop_duplicates('SNP').dropna()
         logger.info("Sumstats {} shape: {}x{}".format(ssfile.split(',')[1],
             sumstats_pop2[ssfile.split(',')[1]].shape[0],sumstats_pop2[ssfile.split(',')[1]].shape[1]))
     P1n, P2n = len(sumstats_pop1_names), len(sumstats_pop2_names)
@@ -129,8 +129,24 @@ if __name__ == '__main__':
     df_ldsc_pop2 = df_ldsc_pop2.loc[df_ldsc_pop2['SNP'].isin(snps_common)].reset_index(drop=True)
     df_ldsc_te = df_ldsc_te.loc[df_ldsc_te['SNP'].isin(snps_common)].reset_index(drop=True)
     for k,v in sumstats_pop1.items():
+        if 'chr' in v['CHR'].values[0]:
+            v['CHR'] = v['CHR'].map(lambda x:x.replace('chr',''))
+        if 'Chr' in v['CHR'].values[0]:
+            v['CHR'] = v['CHR'].map(lambda x:x.replace('Chr',''))
+        if 'CHR' in v['CHR'].values[0]:
+            v['CHR'] = v['CHR'].map(lambda x:x.replace('CHR',''))
+        v = v.loc[v['CHR'].isin([str(_) for _ in range(1,23)])]
+        v['CHR'] = v['CHR'].astype(int)
         sumstats_pop1[k] = v.loc[v['SNP'].isin(snps_common)].sort_values(['CHR','BP']).reset_index(drop=True)
     for k,v in sumstats_pop2.items():
+        if 'chr' in v['CHR'].values[0]:
+            v['CHR'] = v['CHR'].map(lambda x:x.replace('chr',''))
+        if 'Chr' in v['CHR'].values[0]:
+            v['CHR'] = v['CHR'].map(lambda x:x.replace('Chr',''))
+        if 'CHR' in v['CHR'].values[0]:
+            v['CHR'] = v['CHR'].map(lambda x:x.replace('CHR',''))
+        v = v.loc[v['CHR'].isin([str(_) for _ in range(1,23)])]
+        v['CHR'] = v['CHR'].astype(int)
         sumstats_pop2[k] = v.loc[v['SNP'].isin(snps_common)].sort_values(['CHR','BP']).reset_index(drop=True)
 
     # Removing ambiguous SNPs
@@ -279,6 +295,8 @@ if __name__ == '__main__':
             start,end = int(name_window.split('_')[1]),int(name_window.split('_')[2])
             idx_snp_window_chr = ldscore1_c.loc[(ldscore1_c['BP']>=start)&(ldscore1_c['BP']<end)].index.values
             p_window = idx_snp_window_chr.shape[0]
+            if p_window==0:
+                continue
             
             ldscore1_jk[:,1] = ldscore1_c[name_window].values
             ldscore2_jk[:,1] = ldscore2_c[name_window].values
