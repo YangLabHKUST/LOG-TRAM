@@ -47,12 +47,12 @@ optional arguments:
 
 ## Reproducibility
 
-We provide source codes and datasets for reproducing the experiments of LOG-TRAM meta-analysis of 29 EAS and EUR traits, and 19 AFR and EUR/EAS traits in the `demos` directory.
+We provide source codes and datasets for reproducing the experiments of LOG-TRAM meta-analysis of 29 EAS and EUR traits, and 17 AFR and EUR/EAS traits in the `demos` directory.
 + [BMI](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/BMI-demo.ipynb)
 + [SBP](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/SBP-demo.ipynb)
 + [T2D](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/T2D-demo.ipynb)
 + [26 Other Traits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/26OtherTraits-demo.ipynb)
-+ [19 AFR Traits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/AFR-Traits-demo.ipynb)
++ [17 AFR Traits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/AFR-Traits-demo.ipynb)
 
 ## Quick start
 
