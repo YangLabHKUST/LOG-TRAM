@@ -53,6 +53,7 @@ We provide source codes and datasets for reproducing the experiments of LOG-TRAM
 + [T2D](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/T2D-demo.ipynb)
 + [26 Other Traits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/26OtherTraits-demo.ipynb)
 + [17 AFR Traits](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/AFR-Traits-demo.ipynb)
++ [Simulations in Supplementary text](https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/Simulation_simplified.ipynb) and codes for generating figures(https://github.com/YangLabHKUST/LOG-TRAM/blob/main/demos/Plot_simplified.ipynb)
 
 ## Quick start
 
