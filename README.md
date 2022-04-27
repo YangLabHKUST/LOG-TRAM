@@ -96,7 +96,7 @@ CHR     BP      SNP     A1      A2      FRQ     BETA    SE      Z       P       
 ```
 
 LDscore files were computed by [S-LDXR](https://github.com/huwenboshi/s-ldxr) with easily accessible 1000 Genomes project genotypes as reference panels. 
-For reproducibility, we provide the LDscore files of EUR, EAS, and trans-ancestry for 1 Mbp non-overlapping sliding windows [here](https://www.dropbox.com/sh/9asugdlu1lbal8o/AAB0martsgaBoR8B4hq2pc25a?dl=0)
+For reproducibility, we provide the LDscore files of EUR, EAS, AFR, and trans-ancestries for 1 Mbp non-overlapping sliding windows [here](https://www.dropbox.com/sh/9asugdlu1lbal8o/AAB0martsgaBoR8B4hq2pc25a?dl=0)
 
 
 ### Usage
