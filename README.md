@@ -136,5 +136,5 @@ Please contact Jiashun Xiao (jxiaoae@connect.ust.hk), Mingxuan Cai (mcaiad@ust.h
 
 
 ## Reference
-Jiashun Xiao, Mingxuan Cai, Xinyi Yu, Xianghong Hu, Xiang Wan, Gang Chen, Can Yang. (2022). Leveraging the local genetic structure for trans-ancestry association mapping. The American Journal of Human Genetics.
+Jiashun Xiao, Mingxuan Cai, Xinyi Yu, Xianghong Hu, Xiang Wan, Gang Chen, Can Yang. (2022). [Leveraging the local genetic structure for trans-ancestry association mapping](https://www.sciencedirect.com/science/article/abs/pii/S0002929722002191). *The American Journal of Human Genetics*, Volume 109, Issue 7.
 
